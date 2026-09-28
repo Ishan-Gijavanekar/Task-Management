@@ -1,1 +1,12 @@
 .env
+
+# Build
+bin/
+build/
+dist/
+
+# IDE
+.vscode/
+
+# Logs
+*.log

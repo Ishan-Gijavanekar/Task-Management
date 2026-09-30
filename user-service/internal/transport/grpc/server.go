@@ -115,6 +115,10 @@ func (u *UserHandler) DeleteUser(ctx context.Context, req *userv1.DeleteUserRequ
 		return status.Error(codes.InvalidArgument, "req cannot be nil")
 	}
 
+	if strings.TrimSpace(req.GetId()) == "" {
+		return status.Error(codes.InvalidArgument, "Id is required")
+	}
+
 	err := u.userService.Delete(ctx, req.GetId())
 	if err != nil {
 		MapError(err)

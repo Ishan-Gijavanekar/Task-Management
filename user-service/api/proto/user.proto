@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/Ishan-Gijavanekar/user-service/api/proto;proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+
+message User {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    google.protobuf.Timestamp createdAt = 4;
+    google.protobuf.Timestamp updatedAt = 5;
+}
+
+message CreateUserRequest {
+    string name = 1;
+    string email = 2;
+}
+
+message UpdateUserRequest {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message ListUserRequest {
+    int64 page = 1;
+    int64 limit = 2;
+}
+
+message ListUserResponse {
+    repeated User users = 1;
+    int64 total = 2;
+    int64 page = 3;
+    int64 limit = 4;
+}
+
+message DeleteUserRequest {
+    string id = 1;
+}
+
+message UserResponse {
+    User user = 1;
+}
+
+service UserService {
+    rpc CreateUser(CreateUserRequest) returns (UserResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (google.protobuf.Empty);
+    rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+    rpc GetUser(GetUserRequest) returns (UserResponse);
+    rpc GetUsers(ListUserRequest) returns (ListUserResponse);
+}

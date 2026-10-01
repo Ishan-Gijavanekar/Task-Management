@@ -115,7 +115,7 @@ func (u *UserService) List(ctx context.Context, input ListUserInput) (*ListUserR
 }
 
 func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInput) (*domain.User, error) {
-	_, err := u.userRepository.GetByID(ctx, id)
+	user, err := u.userRepository.GetByID(ctx, id)
 	if err != nil {
 		return nil, domain.ErrInvalidUserId
 	}
@@ -124,8 +124,10 @@ func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInp
 	email := strings.ToLower(strings.TrimSpace(input.Email))
 
 	update := &domain.User{
+		ID:        user.ID,
 		Name:      name,
 		Email:     email,
+		CreatedAt: user.CreatedAt,
 		UpdatedAt: time.Now(),
 	}
 

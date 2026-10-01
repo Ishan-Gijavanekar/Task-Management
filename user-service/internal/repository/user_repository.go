@@ -107,13 +107,12 @@ func (r *MongoUserRepository) List(ctx context.Context, params ListUserParmas) (
 	return users, total, nil
 }
 
-func (r *MongoUserRepository) Update(ctx context.Context, user *domain.User, id string) error {
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
+func (r *MongoUserRepository) Update(ctx context.Context, user *domain.User) error {
+	if user.ID.IsZero() {
 		return domain.ErrInvalidUserId
 	}
 
-	_, err = r.collection.UpdateByID(ctx, objectId, user)
+	_, err := r.collection.UpdateByID(ctx, user.ID, user)
 	if err != nil {
 		return fmt.Errorf("Error in update: %v", err)
 	}

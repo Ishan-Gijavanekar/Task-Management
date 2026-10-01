@@ -10,7 +10,7 @@ import (
 
 func MapError(err error) error {
 	switch {
-	case errors.Is(err, domain.ErrInvalidUserId):
+	case errors.Is(err, domain.ErrUserNotFound):
 		return status.Error(codes.NotFound, "User Not Found")
 	case errors.Is(err, domain.ErrUserAlreadyExsists):
 		return status.Error(codes.AlreadyExists, "User Already exsists")

@@ -37,7 +37,7 @@ func (u *UserHandler) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 
 	user, err := u.userService.Create(ctx, service.CreateUserInput{
 		Name:  req.GetName(),
-		Email: req.GetName(),
+		Email: req.GetEmail(),
 	},
 	)
 	if err != nil {
@@ -64,7 +64,7 @@ func (u *UserHandler) GetUser(ctx context.Context, req *userv1.GetUserRequest) (
 	}, nil
 }
 
-func (u *UserHandler) ListUsers(ctx context.Context, req *userv1.ListUserRequest) (*userv1.ListUserResponse, error) {
+func (u *UserHandler) GetUsers(ctx context.Context, req *userv1.ListUserRequest) (*userv1.ListUserResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "page and size are required")
 	}
@@ -85,10 +85,14 @@ func (u *UserHandler) ListUsers(ctx context.Context, req *userv1.ListUserRequest
 
 	return &userv1.ListUserResponse{
 		Users: users,
-		Total: int64(len(result.Users)),
+		Total: result.Total,
 		Page:  result.Page,
 		Limit: result.Limit,
 	}, nil
+}
+
+func (u *UserHandler) ListUsers(ctx context.Context, req *userv1.ListUserRequest) (*userv1.ListUserResponse, error) {
+	return u.GetUsers(ctx, req)
 }
 
 func (u *UserHandler) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*emptypb.Empty, error) {

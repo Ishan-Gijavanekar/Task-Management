@@ -1,128 +1,55 @@
-# Go gRPC User Service
+# Task Management gRPC
 
-A production-oriented backend service built with **Go**, **gRPC**, **Fiber**, and **MongoDB**.
+Task Management gRPC is a Go backend project for handling task-related workflows with a service-oriented design. The project uses **Fiber** for external HTTP endpoints and **gRPC** for internal service-to-service communication, keeping public API access separate from fast internal calls.
 
-The project demonstrates how to build a scalable backend using clean separation between transport, business logic, and persistence layers.
+## Overview
 
-## Tech Stack
+The application is intended to manage task handling through clear layers:
 
-- **Go** — Backend language
-- **gRPC** — Primary service communication
-- **Protocol Buffers** — API contracts and serialization
-- **Fiber** — HTTP/REST API layer
-- **MongoDB** — Database
-- **Docker** — Local development and deployment
+- **Fiber HTTP layer** exposes REST-style endpoints for clients.
+- **gRPC layer** handles internal calls between backend services.
+- **Service layer** contains business rules for task and related domain operations.
+- **Repository layer** manages persistence and database access.
+- **Protocol Buffers** define typed contracts for gRPC communication.
+
+This structure makes it easier to grow the project into multiple services while keeping internal communication strongly typed and efficient.
 
 ## Architecture
 
 ```text
-          Client
-             │
-      ┌──────┴──────┐
-      │             │
-     REST          gRPC
-      │             │
-      ▼             ▼
-   Fiber         gRPC Server
-      │             │
-      └──────┬──────┘
-             ▼
-       Service Layer
-             │
-             ▼
-      Repository Layer
-             │
-             ▼
-          MongoDB
+Client / API Consumer
+        |
+        v
+  Fiber HTTP API
+        |
+        v
+  Service Layer
+        |
+        +----------------+
+        |                |
+        v                v
+ Repository Layer   gRPC Clients
+        |                |
+        v                v
+    Database       Internal Services
+                         |
+                         v
+                    gRPC Servers
 ```
 
-## Project Structure
+## Current Services
 
-```text
-.
-├── api/                # Protocol Buffer definitions
-├── cmd/
-│   └── server/         # Application entry point
-├── gen/                # Generated protobuf/gRPC code
-├── internal/
-│   ├── config/         # Application configuration
-│   ├── database/       # Database initialization
-│   ├── domain/         # Domain models
-│   ├── repository/     # Data access layer
-│   ├── service/        # Business logic
-│   └── transport/      # gRPC and HTTP handlers
-├── pkg/                # Shared packages
-├── tests/              # Integration and E2E tests
-├── docker-compose.yml
-├── Dockerfile
-├── Makefile
-└── go.mod
-```
+- **user-service**: Handles user-related operations and exposes gRPC handlers backed by service and repository layers.
 
-## Getting Started
+## Tech Stack
 
-### Prerequisites
+- **Go** for backend development
+- **Fiber** for HTTP endpoints
+- **gRPC** for internal communication
+- **Protocol Buffers** for API contracts
+- **MongoDB** for persistence
+- **Docker** for local development support
 
-Make sure you have installed:
+## Goal
 
-- Go
-- Docker
-- Docker Compose
-
-### Setup
-
-Clone the repository and install dependencies:
-
-```bash
-go mod download
-```
-
-Create the environment configuration:
-
-```bash
-cp .env.example .env
-```
-
-Start MongoDB:
-
-```bash
-docker compose up -d
-```
-
-Run the application:
-
-```bash
-go run ./cmd/server
-```
-
-## Default Ports
-
-| Service | Port |
-|---|---:|
-| HTTP / Fiber | `8080` |
-| gRPC | `50051` |
-| MongoDB | `27017` |
-
-## Development Status
-
-🚧 **Under active development**
-
-Planned functionality includes:
-
-- User CRUD operations
-- gRPC API
-- REST API with Fiber
-- MongoDB persistence
-- Authentication and authorization
-- gRPC interceptors
-- Request validation
-- Pagination and filtering
-- Streaming RPCs
-- Structured logging
-- Health checks
-- Unit and integration tests
-- Dockerized deployment
-
-## License
-
-This project is intended for learning and demonstration purposes.
+The goal of this project is to demonstrate how task management functionality can be built with a clean Go backend architecture where external requests come through Fiber and internal backend communication is handled through gRPC.

@@ -10,7 +10,11 @@ import (
 
 	"github.com/Ishan-Gijavanekar/user-service/internal/config"
 	"github.com/Ishan-Gijavanekar/user-service/internal/database"
+	"github.com/Ishan-Gijavanekar/user-service/internal/repository"
+	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	"github.com/Ishan-Gijavanekar/user-service/pkg/logger"
+
+	grpcTransport "github.com/Ishan-Gijavanekar/user-service/internal/transport/grpc"
 )
 
 func main() {
@@ -32,6 +36,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	mongoUserRepository := repository.NewMongoUserRepository(
+		mongoDb.Database,
+	)
+	var userRepository repository.UserRespository = mongoUserRepository
+
+	indexContext, cancelIndexes := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+
+	defer cancelIndexes()
+
+	if err := mongoUserRepository.EnsureIndexes(indexContext); err != nil {
+		appLogger.Error(
+			"Failed to initialize user indexes",
+			"error",
+			err,
+		)
+
+		os.Exit(1)
+	}
+
+	userService := service.NewUserService(&userRepository)
+
+	grpcServer := grpcTransport.NewServer(cfg.GRPC.Port, userService, appLogger)
+
+	serverErrors := make(chan error, 1)
+
+	go func() {
+		if err := grpcServer.Start(); err != nil {
+			serverErrors <- err
+		}
+	}()
+
 	signalContext, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -40,12 +78,31 @@ func main() {
 	defer stop()
 
 	appLogger.Info("Application started")
-	<-signalContext.Done()
+	select {
+
+	case <-signalContext.Done():
+
+		appLogger.Info(
+			"shutdown signal received",
+		)
+
+	case err := <-serverErrors:
+
+		appLogger.Error(
+			"grpc server failed",
+			"error",
+			err,
+		)
+
+		stop()
+	}
 
 	appLogger.Info("Shutdown signal received")
 
 	shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	grpcServer.Stop()
 
 	if err := mongoDb.Close(shutdownContext); err != nil {
 		appLogger.Info("Error while closing mongoDB ", "error", err.Error())

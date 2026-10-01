@@ -69,7 +69,7 @@ func Load() (*Config, error) {
 			Port: getEnv("GRPC_PORT", "50051"),
 		},
 		MongoDb: MongoDbConfig{
-			URI:      os.Getenv("MOMGO_URI"),
+			URI:      getEnv("MONGO_URI", os.Getenv("MOMGO_URI")),
 			Database: os.Getenv("MONGO_DATABASE"),
 		},
 	}

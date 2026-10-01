@@ -9,6 +9,7 @@ import (
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 
 	googlegrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
@@ -26,6 +27,7 @@ func NewServer(port string, userService *service.UserService, logger *slog.Logge
 		grpcServer,
 		UserHandler,
 	)
+	reflection.Register(grpcServer)
 
 	return &Server{
 		port:   port,

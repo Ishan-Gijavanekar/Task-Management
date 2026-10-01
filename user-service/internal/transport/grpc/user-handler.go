@@ -8,6 +8,7 @@ import (
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type UserHandler struct {
@@ -90,13 +91,13 @@ func (u *UserHandler) ListUsers(ctx context.Context, req *userv1.ListUserRequest
 	}, nil
 }
 
-func (u *UserHandler) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) error {
+func (u *UserHandler) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*emptypb.Empty, error) {
 	if req == nil {
-		return status.Error(codes.InvalidArgument, "req cannot be nil")
+		return nil, status.Error(codes.InvalidArgument, "req cannot be nil")
 	}
 
 	if strings.TrimSpace(req.GetName()) == "" || strings.TrimSpace(req.GetId()) == "" || strings.TrimSpace(req.GetEmail()) == "" {
-		return status.Error(codes.InvalidArgument, "ID, name and email are required")
+		return nil, status.Error(codes.InvalidArgument, "ID, name and email are required")
 	}
 
 	_, err := u.userService.Update(ctx, req.GetId(), service.UpdateUserInput{
@@ -104,25 +105,25 @@ func (u *UserHandler) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequ
 		Email: req.GetEmail(),
 	})
 	if err != nil {
-		return MapError(err)
+		return nil, MapError(err)
 	}
 
-	return nil
+	return &emptypb.Empty{}, nil
 }
 
-func (u *UserHandler) DeleteUser(ctx context.Context, req *userv1.DeleteUserRequest) error {
+func (u *UserHandler) DeleteUser(ctx context.Context, req *userv1.DeleteUserRequest) (*emptypb.Empty, error) {
 	if req == nil {
-		return status.Error(codes.InvalidArgument, "req cannot be nil")
+		return nil, status.Error(codes.InvalidArgument, "req cannot be nil")
 	}
 
 	if strings.TrimSpace(req.GetId()) == "" {
-		return status.Error(codes.InvalidArgument, "Id is required")
+		return nil, status.Error(codes.InvalidArgument, "Id is required")
 	}
 
 	err := u.userService.Delete(ctx, req.GetId())
 	if err != nil {
-		MapError(err)
+		return nil, MapError(err)
 	}
 
-	return nil
+	return &emptypb.Empty{}, nil
 }

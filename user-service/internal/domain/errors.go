@@ -14,4 +14,7 @@ var (
 
 	ErrUnauthorized = errors.New("Unauthorized")
 	ErrForbidden    = errors.New("Forbidden")
+
+	ErrInvalidToken = errors.New("invalid token")
+	ErrExpiredToken = errors.New("token expired")
 )

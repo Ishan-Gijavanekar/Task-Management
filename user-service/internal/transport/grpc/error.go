@@ -28,6 +28,10 @@ func MapError(err error) error {
 		return status.Error(codes.Unauthenticated, "auththentication required")
 	case errors.Is(err, domain.ErrForbidden):
 		return status.Error(codes.PermissionDenied, "Permission Denied")
+	case errors.Is(err, domain.ErrInvalidToken):
+		return status.Error(codes.Unauthenticated, "Invalid access token")
+	case errors.Is(err, domain.ErrExpiredToken):
+		return status.Error(codes.Unauthenticated, "Access token expired")
 	default:
 		return status.Error(codes.Unknown, "Internal Server Error")
 	}

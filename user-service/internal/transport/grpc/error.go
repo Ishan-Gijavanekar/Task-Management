@@ -16,6 +16,10 @@ func MapError(err error) error {
 		return status.Error(codes.AlreadyExists, "User Already exsists")
 	case errors.Is(err, domain.ErrInvalidUserId):
 		return status.Error(codes.InvalidArgument, "User Id does not exsist")
+	case errors.Is(err, domain.ErrInvalidName):
+		return status.Error(codes.InvalidArgument, "Invalid name")
+	case errors.Is(err, domain.ErrInvalidEmail):
+		return status.Error(codes.InvalidArgument, "Invalid email")
 	default:
 		return status.Error(codes.Unknown, "Internal Server Error")
 	}

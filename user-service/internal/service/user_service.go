@@ -46,6 +46,10 @@ func (s *UserService) Create(ctx context.Context, user CreateUserInput) (*domain
 	name := strings.TrimSpace(user.Name)
 	email := strings.ToLower(strings.TrimSpace(user.Email))
 
+	if err := ValidateUser(name, email); err != nil {
+		return nil, err
+	}
+
 	createUser := &domain.User{
 		Name:      name,
 		Email:     email,
@@ -122,6 +126,10 @@ func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInp
 
 	name := strings.TrimSpace(input.Name)
 	email := strings.ToLower(strings.TrimSpace(input.Email))
+
+	if err := ValidateUser(name, email); err != nil {
+		return nil, err
+	}
 
 	update := &domain.User{
 		ID:        user.ID,

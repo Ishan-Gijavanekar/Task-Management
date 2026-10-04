@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -13,7 +14,8 @@ type AppConfig struct {
 }
 
 type GRPCConfig struct {
-	Port string
+	Port             string
+	EnableReflection bool
 }
 
 type HTTPCOnfig struct {
@@ -66,7 +68,8 @@ func Load() (*Config, error) {
 			Port: getEnv("HTTP_PORT", "8080"),
 		},
 		GRPC: GRPCConfig{
-			Port: getEnv("GRPC_PORT", "50051"),
+			Port:             getEnv("GRPC_PORT", "50051"),
+			EnableReflection: getEnvBool("GRPC_REFLECTION_ENABLED", true),
 		},
 		MongoDb: MongoDbConfig{
 			URI:      getEnv("MONGO_URI", os.Getenv("MOMGO_URI")),
@@ -80,4 +83,19 @@ func Load() (*Config, error) {
 	}
 
 	return &cfg, err
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	value := os.Getenv(key)
+
+	if value == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+
+	return parsed
 }

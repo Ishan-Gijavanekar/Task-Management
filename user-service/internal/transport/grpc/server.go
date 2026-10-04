@@ -7,53 +7,128 @@ import (
 
 	userv1 "github.com/Ishan-Gijavanekar/user-service/api/proto"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
+	"github.com/Ishan-Gijavanekar/user-service/internal/transport/grpc/interceptor"
 
 	googlegrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
-	server *googlegrpc.Server
-	port   string
-	logger *slog.Logger
+	server       *googlegrpc.Server
+	healthServer *health.Server
+	port         string
+	logger       *slog.Logger
 }
 
-func NewServer(port string, userService *service.UserService, logger *slog.Logger) *Server {
-	grpcServer := googlegrpc.NewServer()
+func NewServer(
+	port string,
+	reflectionEnabled bool,
+	userService *service.UserService,
+	logger *slog.Logger,
+) *Server {
 
-	UserHandler := NewUserHandler(userService)
+	grpcServer := googlegrpc.NewServer(
+		googlegrpc.ChainUnaryInterceptor(
+			interceptor.RequestIDUnaryInterceptor,
+			interceptor.LoggingUnaryInterceptor(*logger),
+			interceptor.RecoveryUnaryInterceptor(logger),
+		),
+	)
+
+	userHandler := NewUserHandler(
+		userService,
+	)
 
 	userv1.RegisterUserServiceServer(
 		grpcServer,
-		UserHandler,
+		userHandler,
 	)
-	reflection.Register(grpcServer)
+
+	healthServer := health.NewServer()
+
+	grpc_health_v1.RegisterHealthServer(
+		grpcServer,
+		healthServer,
+	)
+
+	healthServer.SetServingStatus(
+		"",
+		grpc_health_v1.HealthCheckResponse_SERVING,
+	)
+
+	healthServer.SetServingStatus(
+		"user.v1.UserService",
+		grpc_health_v1.HealthCheckResponse_SERVING,
+	)
+
+	if reflectionEnabled {
+		reflection.Register(
+			grpcServer,
+		)
+
+		logger.Info(
+			"grpc reflection enabled",
+		)
+	}
 
 	return &Server{
-		port:   port,
-		server: grpcServer,
-		logger: logger,
+		server:       grpcServer,
+		healthServer: healthServer,
+		port:         port,
+		logger:       logger,
 	}
 }
 
 func (s *Server) Start() error {
+
 	address := ":" + s.port
-	listener, err := net.Listen("tcp", address)
+
+	listener, err := net.Listen(
+		"tcp",
+		address,
+	)
+
 	if err != nil {
-		return fmt.Errorf("Listening on port %s, err %w", address, err)
+		return fmt.Errorf(
+			"listen on %s: %w",
+			address,
+			err,
+		)
 	}
 
-	s.logger.Info("grpc server listening on", "address", address)
+	s.logger.Info(
+		"grpc server listening",
+		"address",
+		address,
+	)
 
 	if err := s.server.Serve(listener); err != nil {
-		return fmt.Errorf("Error serving: %w", err)
+		return fmt.Errorf(
+			"serve grpc: %w",
+			err,
+		)
 	}
 
 	return nil
 }
 
 func (s *Server) Stop() {
-	s.logger.Info("Server stopping gracefully")
+
+	s.logger.Info(
+		"stopping grpc server",
+	)
+
+	s.healthServer.SetServingStatus(
+		"",
+		grpc_health_v1.HealthCheckResponse_NOT_SERVING,
+	)
+
+	s.healthServer.SetServingStatus(
+		"user.v1.UserService",
+		grpc_health_v1.HealthCheckResponse_NOT_SERVING,
+	)
 
 	s.server.GracefulStop()
 }

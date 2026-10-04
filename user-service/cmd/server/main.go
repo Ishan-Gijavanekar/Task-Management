@@ -60,7 +60,16 @@ func main() {
 
 	userService := service.NewUserService(&userRepository)
 
-	grpcServer := grpcTransport.NewServer(cfg.GRPC.Port, userService, appLogger)
+	grpcServer := grpcTransport.NewServer(
+		cfg.GRPC.Port,
+		cfg.GRPC.EnableReflection,
+		userService,
+		appLogger,
+	)
+	if err != nil {
+		appLogger.Error("Failed to create grpc server", "error", err)
+		os.Exit(1)
+	}
 
 	serverErrors := make(chan error, 1)
 

@@ -101,3 +101,7 @@ func (m *JWTManager) ValidateAccessToken(tokenString string) (*Claims, error) {
 
 	return claims, nil
 }
+
+func (m *JWTManager) AccessTokenDuration() time.Duration {
+	return m.accessTokenDuration
+}

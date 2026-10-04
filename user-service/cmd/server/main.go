@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
 	"github.com/Ishan-Gijavanekar/user-service/internal/config"
 	"github.com/Ishan-Gijavanekar/user-service/internal/database"
 	"github.com/Ishan-Gijavanekar/user-service/internal/repository"
@@ -59,6 +60,14 @@ func main() {
 	}
 
 	userService := service.NewUserService(&userRepository)
+	jwtManager := auth.NewJWTManager(
+		cfg.JWT.Secret,
+		cfg.JWT.Issuer,
+		cfg.JWT.AccessTokenDuration,
+	)
+	authService := service.NewAuthService(userRepository, jwtManager)
+
+	_ = authService
 
 	grpcServer := grpcTransport.NewServer(
 		cfg.GRPC.Port,

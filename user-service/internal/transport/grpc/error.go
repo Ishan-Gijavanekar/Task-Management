@@ -20,6 +20,14 @@ func MapError(err error) error {
 		return status.Error(codes.InvalidArgument, "Invalid name")
 	case errors.Is(err, domain.ErrInvalidEmail):
 		return status.Error(codes.InvalidArgument, "Invalid email")
+	case errors.Is(err, domain.ErrInvalidPassword):
+		return status.Error(codes.InvalidArgument, "Invalid Password")
+	case errors.Is(err, domain.ErrInvalidCredentials):
+		return status.Error(codes.Unauthenticated, "Invaslid Credentails")
+	case errors.Is(err, domain.ErrUnauthorized):
+		return status.Error(codes.Unauthenticated, "auththentication required")
+	case errors.Is(err, domain.ErrForbidden):
+		return status.Error(codes.PermissionDenied, "Permission Denied")
 	default:
 		return status.Error(codes.Unknown, "Internal Server Error")
 	}

@@ -54,6 +54,7 @@ func (s *UserService) Create(ctx context.Context, user CreateUserInput) (*domain
 		Name:      name,
 		Email:     email,
 		ID:        primitive.NewObjectID(),
+		Role:      domain.UserRoleUser,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -135,6 +136,7 @@ func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInp
 		ID:        user.ID,
 		Name:      name,
 		Email:     email,
+		Role:      domain.UserRoleUser,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: time.Now(),
 	}

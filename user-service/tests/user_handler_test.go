@@ -7,6 +7,7 @@ import (
 	"time"
 
 	userv1 "github.com/Ishan-Gijavanekar/user-service/api/proto"
+	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
 	"github.com/Ishan-Gijavanekar/user-service/internal/domain"
 	"github.com/Ishan-Gijavanekar/user-service/internal/repository"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
@@ -70,6 +71,18 @@ func newUserHandler(repo *fakeUserRepository) *transportgrpc.UserHandler {
 	return transportgrpc.NewUserHandler(userService)
 }
 
+func authenticatedContext(id string, role domain.UserRole) context.Context {
+	return auth.WithAuthenticatedUser(context.Background(), &auth.AuthenticatedUser{
+		ID:    id,
+		Email: "user@example.com",
+		Role:  role,
+	})
+}
+
+func adminContext() context.Context {
+	return authenticatedContext("admin-123", domain.UserRoleAdmin)
+}
+
 func testUser() *domain.User {
 	now := time.Now().UTC()
 	return &domain.User{
@@ -85,7 +98,7 @@ func TestCreateUser(t *testing.T) {
 	repo := &fakeUserRepository{}
 	handler := newUserHandler(repo)
 
-	resp, err := handler.CreateUser(context.Background(), &userv1.CreateUserRequest{
+	resp, err := handler.CreateUser(adminContext(), &userv1.CreateUserRequest{
 		Name:  " Ada Lovelace ",
 		Email: " ADA@EXAMPLE.COM ",
 	})
@@ -125,7 +138,11 @@ func TestCreateUserValidationAndErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := newUserHandler(&fakeUserRepository{createErr: tt.err})
-			_, err := handler.CreateUser(context.Background(), tt.req)
+			ctx := context.Background()
+			if tt.err != nil {
+				ctx = adminContext()
+			}
+			_, err := handler.CreateUser(ctx, tt.req)
 			if status.Code(err) != tt.code {
 				t.Fatalf("expected %s, got %s (%v)", tt.code, status.Code(err), err)
 			}
@@ -133,17 +150,49 @@ func TestCreateUserValidationAndErrors(t *testing.T) {
 	}
 }
 
+func TestCreateUserRequiresAdmin(t *testing.T) {
+	handler := newUserHandler(&fakeUserRepository{})
+
+	_, err := handler.CreateUser(authenticatedContext("user-123", domain.UserRoleUser), &userv1.CreateUserRequest{
+		Name:  "Ada Lovelace",
+		Email: "ada@example.com",
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %s (%v)", status.Code(err), err)
+	}
+}
+
 func TestGetUser(t *testing.T) {
 	user := testUser()
 	handler := newUserHandler(&fakeUserRepository{user: user})
 
-	resp, err := handler.GetUser(context.Background(), &userv1.GetUserRequest{Id: user.ID.Hex()})
+	resp, err := handler.GetUser(authenticatedContext(user.ID.Hex(), domain.UserRoleUser), &userv1.GetUserRequest{Id: user.ID.Hex()})
 	if err != nil {
 		t.Fatalf("GetUser returned error: %v", err)
 	}
 
 	if resp.GetUser().GetId() != user.ID.Hex() {
 		t.Fatalf("expected id %q, got %q", user.ID.Hex(), resp.GetUser().GetId())
+	}
+}
+
+func TestGetUserAllowsAdmin(t *testing.T) {
+	user := testUser()
+	handler := newUserHandler(&fakeUserRepository{user: user})
+
+	_, err := handler.GetUser(adminContext(), &userv1.GetUserRequest{Id: user.ID.Hex()})
+	if err != nil {
+		t.Fatalf("GetUser returned error: %v", err)
+	}
+}
+
+func TestGetUserRejectsOtherUser(t *testing.T) {
+	user := testUser()
+	handler := newUserHandler(&fakeUserRepository{user: user})
+
+	_, err := handler.GetUser(authenticatedContext(primitive.NewObjectID().Hex(), domain.UserRoleUser), &userv1.GetUserRequest{Id: user.ID.Hex()})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %s (%v)", status.Code(err), err)
 	}
 }
 
@@ -162,7 +211,11 @@ func TestGetUserValidationAndErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := newUserHandler(&fakeUserRepository{getErr: tt.err})
-			_, err := handler.GetUser(context.Background(), tt.req)
+			ctx := context.Background()
+			if tt.err != nil && tt.req != nil {
+				ctx = authenticatedContext(tt.req.GetId(), domain.UserRoleUser)
+			}
+			_, err := handler.GetUser(ctx, tt.req)
 			if status.Code(err) != tt.code {
 				t.Fatalf("expected %s, got %s (%v)", tt.code, status.Code(err), err)
 			}
@@ -178,7 +231,7 @@ func TestGetUsers(t *testing.T) {
 	}
 	handler := newUserHandler(repo)
 
-	resp, err := handler.GetUsers(context.Background(), &userv1.ListUserRequest{Page: 2, Limit: 5})
+	resp, err := handler.GetUsers(adminContext(), &userv1.ListUserRequest{Page: 2, Limit: 5})
 	if err != nil {
 		t.Fatalf("GetUsers returned error: %v", err)
 	}
@@ -194,6 +247,15 @@ func TestGetUsers(t *testing.T) {
 	}
 }
 
+func TestGetUsersRequiresAdmin(t *testing.T) {
+	handler := newUserHandler(&fakeUserRepository{})
+
+	_, err := handler.GetUsers(authenticatedContext("user-123", domain.UserRoleUser), &userv1.ListUserRequest{})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %s (%v)", status.Code(err), err)
+	}
+}
+
 func TestGetUsersValidationAndErrors(t *testing.T) {
 	handler := newUserHandler(&fakeUserRepository{})
 	if _, err := handler.GetUsers(context.Background(), nil); status.Code(err) != codes.InvalidArgument {
@@ -201,7 +263,7 @@ func TestGetUsersValidationAndErrors(t *testing.T) {
 	}
 
 	handler = newUserHandler(&fakeUserRepository{listErr: errors.New("database failed")})
-	if _, err := handler.GetUsers(context.Background(), &userv1.ListUserRequest{}); status.Code(err) != codes.Unknown {
+	if _, err := handler.GetUsers(adminContext(), &userv1.ListUserRequest{}); status.Code(err) != codes.Unknown {
 		t.Fatalf("expected Unknown for repository error, got %s (%v)", status.Code(err), err)
 	}
 }
@@ -211,7 +273,7 @@ func TestUpdateUser(t *testing.T) {
 	repo := &fakeUserRepository{user: user}
 	handler := newUserHandler(repo)
 
-	_, err := handler.UpdateUser(context.Background(), &userv1.UpdateUserRequest{
+	_, err := handler.UpdateUser(authenticatedContext(user.ID.Hex(), domain.UserRoleUser), &userv1.UpdateUserRequest{
 		Id:    user.ID.Hex(),
 		Name:  " Grace Hopper ",
 		Email: " GRACE@EXAMPLE.COM ",
@@ -231,6 +293,35 @@ func TestUpdateUser(t *testing.T) {
 	}
 }
 
+func TestUpdateUserAllowsAdmin(t *testing.T) {
+	user := testUser()
+	repo := &fakeUserRepository{user: user}
+	handler := newUserHandler(repo)
+
+	_, err := handler.UpdateUser(adminContext(), &userv1.UpdateUserRequest{
+		Id:    user.ID.Hex(),
+		Name:  "Grace Hopper",
+		Email: "grace@example.com",
+	})
+	if err != nil {
+		t.Fatalf("UpdateUser returned error: %v", err)
+	}
+}
+
+func TestUpdateUserRejectsOtherUser(t *testing.T) {
+	user := testUser()
+	handler := newUserHandler(&fakeUserRepository{user: user})
+
+	_, err := handler.UpdateUser(authenticatedContext(primitive.NewObjectID().Hex(), domain.UserRoleUser), &userv1.UpdateUserRequest{
+		Id:    user.ID.Hex(),
+		Name:  "Grace Hopper",
+		Email: "grace@example.com",
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %s (%v)", status.Code(err), err)
+	}
+}
+
 func TestUpdateUserValidationAndErrors(t *testing.T) {
 	tests := []struct {
 		name string
@@ -246,7 +337,11 @@ func TestUpdateUserValidationAndErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := newUserHandler(&fakeUserRepository{getErr: tt.err})
-			_, err := handler.UpdateUser(context.Background(), tt.req)
+			ctx := context.Background()
+			if tt.err != nil && tt.req != nil {
+				ctx = authenticatedContext(tt.req.GetId(), domain.UserRoleUser)
+			}
+			_, err := handler.UpdateUser(ctx, tt.req)
 			if status.Code(err) != tt.code {
 				t.Fatalf("expected %s, got %s (%v)", tt.code, status.Code(err), err)
 			}
@@ -259,11 +354,31 @@ func TestDeleteUser(t *testing.T) {
 	repo := &fakeUserRepository{}
 	handler := newUserHandler(repo)
 
-	if _, err := handler.DeleteUser(context.Background(), &userv1.DeleteUserRequest{Id: id}); err != nil {
+	if _, err := handler.DeleteUser(authenticatedContext(id, domain.UserRoleUser), &userv1.DeleteUserRequest{Id: id}); err != nil {
 		t.Fatalf("DeleteUser returned error: %v", err)
 	}
 	if repo.deletedID != id {
 		t.Fatalf("expected deleted id %q, got %q", id, repo.deletedID)
+	}
+}
+
+func TestDeleteUserAllowsAdmin(t *testing.T) {
+	id := primitive.NewObjectID().Hex()
+	repo := &fakeUserRepository{}
+	handler := newUserHandler(repo)
+
+	if _, err := handler.DeleteUser(adminContext(), &userv1.DeleteUserRequest{Id: id}); err != nil {
+		t.Fatalf("DeleteUser returned error: %v", err)
+	}
+}
+
+func TestDeleteUserRejectsOtherUser(t *testing.T) {
+	id := primitive.NewObjectID().Hex()
+	handler := newUserHandler(&fakeUserRepository{})
+
+	_, err := handler.DeleteUser(authenticatedContext(primitive.NewObjectID().Hex(), domain.UserRoleUser), &userv1.DeleteUserRequest{Id: id})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %s (%v)", status.Code(err), err)
 	}
 }
 
@@ -282,7 +397,11 @@ func TestDeleteUserValidationAndErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := newUserHandler(&fakeUserRepository{deleteErr: tt.err})
-			_, err := handler.DeleteUser(context.Background(), tt.req)
+			ctx := context.Background()
+			if tt.err != nil && tt.req != nil {
+				ctx = authenticatedContext(tt.req.GetId(), domain.UserRoleUser)
+			}
+			_, err := handler.DeleteUser(ctx, tt.req)
 			if status.Code(err) != tt.code {
 				t.Fatalf("expected %s, got %s (%v)", tt.code, status.Code(err), err)
 			}

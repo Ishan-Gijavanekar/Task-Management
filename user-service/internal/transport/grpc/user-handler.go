@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	userv1 "github.com/Ishan-Gijavanekar/user-service/api/proto"
+	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
+	"github.com/Ishan-Gijavanekar/user-service/internal/domain"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,6 +37,10 @@ func (u *UserHandler) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 		return nil, status.Error(codes.InvalidArgument, "email cannot be empty")
 	}
 
+	if _, err := auth.RequireRole(ctx, domain.UserRoleAdmin); err != nil {
+		return nil, MapError(err)
+	}
+
 	user, err := u.userService.Create(ctx, service.CreateUserInput{
 		Name:  req.GetName(),
 		Email: req.GetEmail(),
@@ -54,6 +60,10 @@ func (u *UserHandler) GetUser(ctx context.Context, req *userv1.GetUserRequest) (
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
+	if _, err := auth.RequireSelfOrAdmin(ctx, req.GetId()); err != nil {
+		return nil, MapError(err)
+	}
+
 	user, err := u.userService.GetByID(ctx, req.GetId())
 	if err != nil {
 		return nil, MapError(err)
@@ -67,6 +77,10 @@ func (u *UserHandler) GetUser(ctx context.Context, req *userv1.GetUserRequest) (
 func (u *UserHandler) GetUsers(ctx context.Context, req *userv1.ListUserRequest) (*userv1.ListUserResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "page and size are required")
+	}
+
+	if _, err := auth.RequireRole(ctx, domain.UserRoleAdmin); err != nil {
+		return nil, MapError(err)
 	}
 
 	result, err := u.userService.List(ctx, service.ListUserInput{
@@ -104,6 +118,10 @@ func (u *UserHandler) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequ
 		return nil, status.Error(codes.InvalidArgument, "ID, name and email are required")
 	}
 
+	if _, err := auth.RequireSelfOrAdmin(ctx, req.GetId()); err != nil {
+		return nil, MapError(err)
+	}
+
 	_, err := u.userService.Update(ctx, req.GetId(), service.UpdateUserInput{
 		Name:  req.GetName(),
 		Email: req.GetEmail(),
@@ -122,6 +140,10 @@ func (u *UserHandler) DeleteUser(ctx context.Context, req *userv1.DeleteUserRequ
 
 	if strings.TrimSpace(req.GetId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "Id is required")
+	}
+
+	if _, err := auth.RequireSelfOrAdmin(ctx, req.GetId()); err != nil {
+		return nil, MapError(err)
 	}
 
 	err := u.userService.Delete(ctx, req.GetId())

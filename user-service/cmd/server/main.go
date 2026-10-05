@@ -72,6 +72,7 @@ func main() {
 		cfg.GRPC.EnableReflection,
 		userService,
 		authService,
+		jwtManager,
 		appLogger,
 	)
 	if err != nil {

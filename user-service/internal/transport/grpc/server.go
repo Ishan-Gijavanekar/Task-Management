@@ -7,6 +7,7 @@ import (
 
 	userv1 "github.com/Ishan-Gijavanekar/user-service/api/proto"
 	authv1 "github.com/Ishan-Gijavanekar/user-service/api/proto/auth/v1"
+	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	"github.com/Ishan-Gijavanekar/user-service/internal/transport/grpc/interceptor"
 
@@ -28,14 +29,21 @@ func NewServer(
 	reflectionEnabled bool,
 	userService *service.UserService,
 	authService *service.AuthService,
+	jwtManager *auth.JWTManager,
 	logger *slog.Logger,
 ) *Server {
+
+	authInterceptor := interceptor.NewAuthInterceptor(
+		jwtManager,
+		interceptor.PublicMethods,
+	)
 
 	grpcServer := googlegrpc.NewServer(
 		googlegrpc.ChainUnaryInterceptor(
 			interceptor.RequestIDUnaryInterceptor,
 			interceptor.LoggingUnaryInterceptor(*logger),
 			interceptor.RecoveryUnaryInterceptor(logger),
+			authInterceptor.Unary(),
 		),
 	)
 

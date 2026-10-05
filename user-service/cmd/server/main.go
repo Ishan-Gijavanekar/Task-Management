@@ -67,12 +67,11 @@ func main() {
 	)
 	authService := service.NewAuthService(userRepository, jwtManager)
 
-	_ = authService
-
 	grpcServer := grpcTransport.NewServer(
 		cfg.GRPC.Port,
 		cfg.GRPC.EnableReflection,
 		userService,
+		authService,
 		appLogger,
 	)
 	if err != nil {

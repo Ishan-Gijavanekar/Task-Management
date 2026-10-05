@@ -6,6 +6,7 @@ import (
 	"net"
 
 	userv1 "github.com/Ishan-Gijavanekar/user-service/api/proto"
+	authv1 "github.com/Ishan-Gijavanekar/user-service/api/proto/auth/v1"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	"github.com/Ishan-Gijavanekar/user-service/internal/transport/grpc/interceptor"
 
@@ -26,6 +27,7 @@ func NewServer(
 	port string,
 	reflectionEnabled bool,
 	userService *service.UserService,
+	authService *service.AuthService,
 	logger *slog.Logger,
 ) *Server {
 
@@ -40,10 +42,17 @@ func NewServer(
 	userHandler := NewUserHandler(
 		userService,
 	)
+	authHandler := NewAuthHandler(
+		authService,
+	)
 
 	userv1.RegisterUserServiceServer(
 		grpcServer,
 		userHandler,
+	)
+	authv1.RegisterAuthServiceServer(
+		grpcServer,
+		authHandler,
 	)
 
 	healthServer := health.NewServer()
@@ -60,6 +69,10 @@ func NewServer(
 
 	healthServer.SetServingStatus(
 		"user.v1.UserService",
+		grpc_health_v1.HealthCheckResponse_SERVING,
+	)
+	healthServer.SetServingStatus(
+		"auth.v1.AuthService",
 		grpc_health_v1.HealthCheckResponse_SERVING,
 	)
 
@@ -127,6 +140,10 @@ func (s *Server) Stop() {
 
 	s.healthServer.SetServingStatus(
 		"user.v1.UserService",
+		grpc_health_v1.HealthCheckResponse_NOT_SERVING,
+	)
+	s.healthServer.SetServingStatus(
+		"auth.v1.AuthService",
 		grpc_health_v1.HealthCheckResponse_NOT_SERVING,
 	)
 

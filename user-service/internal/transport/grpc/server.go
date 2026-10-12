@@ -10,6 +10,7 @@ import (
 	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	"github.com/Ishan-Gijavanekar/user-service/internal/transport/grpc/interceptor"
+	"github.com/gofiber/fiber/v2"
 
 	googlegrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -22,6 +23,7 @@ type Server struct {
 	healthServer *health.Server
 	port         string
 	logger       *slog.Logger
+	app          *fiber.App
 }
 
 func NewServer(

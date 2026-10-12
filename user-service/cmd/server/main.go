@@ -16,6 +16,7 @@ import (
 	"github.com/Ishan-Gijavanekar/user-service/pkg/logger"
 
 	grpcTransport "github.com/Ishan-Gijavanekar/user-service/internal/transport/grpc"
+	httpTransport "github.com/Ishan-Gijavanekar/user-service/internal/transport/http"
 )
 
 func main() {
@@ -75,15 +76,25 @@ func main() {
 		jwtManager,
 		appLogger,
 	)
-	if err != nil {
-		appLogger.Error("Failed to create grpc server", "error", err)
-		os.Exit(1)
-	}
 
-	serverErrors := make(chan error, 1)
+	httpServer := httpTransport.NewServer(
+		cfg.HTTP.Port,
+		userService,
+		authService,
+		jwtManager,
+		appLogger,
+	)
+
+	serverErrors := make(chan error, 2)
 
 	go func() {
 		if err := grpcServer.Start(); err != nil {
+			serverErrors <- err
+		}
+	}()
+
+	go func() {
+		if err := httpServer.Start(); err != nil {
 			serverErrors <- err
 		}
 	}()
@@ -107,7 +118,7 @@ func main() {
 	case err := <-serverErrors:
 
 		appLogger.Error(
-			"grpc server failed",
+			"server failed",
 			"error",
 			err,
 		)
@@ -121,6 +132,10 @@ func main() {
 	defer cancel()
 
 	grpcServer.Stop()
+
+	if err := httpServer.Stop(shutdownContext); err != nil {
+		appLogger.Info("Error while stopping http server", "error", err.Error())
+	}
 
 	if err := mongoDb.Close(shutdownContext); err != nil {
 		appLogger.Info("Error while closing mongoDB ", "error", err.Error())

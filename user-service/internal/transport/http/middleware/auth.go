@@ -41,7 +41,7 @@ func (a *AuthMiddleware) Authenticate(c *fiber.Ctx) error {
 	}
 
 	if !strings.EqualFold(parts[0], "Bearer") {
-		unauthorized(c, "invalid token")
+		return unauthorized(c, "invalid token")
 	}
 
 	claims, err := a.JwtManager.ValidateAccessToken(parts[1])

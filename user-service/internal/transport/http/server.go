@@ -21,6 +21,16 @@ type Server struct {
 	logger *slog.Logger
 }
 
+func (s *Server) Validate() error {
+	if s == nil || s.app == nil {
+		return fmt.Errorf("http server: app is required")
+	}
+	if s.logger == nil {
+		return fmt.Errorf("http server: logger is required")
+	}
+	return nil
+}
+
 func NewServer(
 	cfg config.HTTPConfig,
 	authCfg config.AuthConfig,

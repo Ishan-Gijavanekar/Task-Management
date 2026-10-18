@@ -66,6 +66,10 @@ func main() {
 	}
 
 	userService := service.NewUserService(&userRepository)
+	if err := userService.Validate(); err != nil {
+		appLogger.Error("Invalid user service configuration", "error", err)
+		os.Exit(1)
+	}
 	signingKeys := cfg.JWT.PreviousKeys
 	signingKeys[cfg.JWT.ActiveKeyID] = cfg.JWT.Secret
 	jwtManager := auth.NewRotatingJWTManager(
@@ -74,6 +78,10 @@ func main() {
 		cfg.JWT.Issuer,
 		cfg.JWT.AccessTokenDuration,
 	)
+	if err := jwtManager.Validate(); err != nil {
+		appLogger.Error("Invalid JWT configuration", "error", err)
+		os.Exit(1)
+	}
 	authOptions := []service.AuthServiceOption{
 		service.WithAuthTokenRepository(mongoTokenRepository),
 		service.WithRefreshTokenDuration(cfg.Auth.RefreshTokenDuration),
@@ -115,6 +123,14 @@ func main() {
 		appLogger,
 		mongoDb,
 	)
+	if err := grpcServer.Validate(); err != nil {
+		appLogger.Error("Invalid gRPC server configuration", "error", err)
+		os.Exit(1)
+	}
+	if err := httpServer.Validate(); err != nil {
+		appLogger.Error("Invalid HTTP server configuration", "error", err)
+		os.Exit(1)
+	}
 
 	serverErrors := make(chan error, 2)
 

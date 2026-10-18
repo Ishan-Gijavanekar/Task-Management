@@ -26,6 +26,16 @@ type Server struct {
 	app          *fiber.App
 }
 
+func (s *Server) Validate() error {
+	if s == nil || s.server == nil || s.healthServer == nil {
+		return fmt.Errorf("grpc server: server dependencies are required")
+	}
+	if s.logger == nil {
+		return fmt.Errorf("grpc server: logger is required")
+	}
+	return nil
+}
+
 func NewServer(
 	port string,
 	reflectionEnabled bool,

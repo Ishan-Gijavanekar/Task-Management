@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -9,6 +10,13 @@ import (
 	"github.com/Ishan-Gijavanekar/user-service/internal/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+func (s *UserService) Validate() error {
+	if s == nil || s.userRepository == nil {
+		return fmt.Errorf("user service: %w: user repository is required", domain.ErrInvalidConfiguration)
+	}
+	return nil
+}
 
 type UserService struct {
 	userRepository repository.UserRespository

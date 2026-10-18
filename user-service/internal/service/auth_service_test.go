@@ -9,7 +9,12 @@ import (
 	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
 	"github.com/Ishan-Gijavanekar/user-service/internal/domain"
 	"github.com/Ishan-Gijavanekar/user-service/internal/repository"
+	"github.com/Ishan-Gijavanekar/user-service/internal/testutil"
 )
+
+func newTestAuthService(repo repository.UserRespository, jwtManager *auth.JWTManager) *AuthService {
+	return NewAuthService(repo, jwtManager, WithAuthTokenRepository(testutil.NewMemoryAuthTokenRepository()))
+}
 
 type fakeUserRepository struct {
 	users map[string]*domain.User
@@ -89,10 +94,7 @@ func TestAuthServiceRegister(
 		15*time.Minute,
 	)
 
-	authService := NewAuthService(
-		repo,
-		jwtManager,
-	)
+	authService := newTestAuthService(repo, jwtManager)
 
 	result, err := authService.Register(
 		context.Background(),
@@ -175,10 +177,7 @@ func TestAuthServiceLogin(
 		15*time.Minute,
 	)
 
-	authService := NewAuthService(
-		repo,
-		jwtManager,
-	)
+	authService := newTestAuthService(repo, jwtManager)
 
 	_, err := authService.Register(
 		context.Background(),
@@ -237,10 +236,7 @@ func TestAuthServiceLoginWrongPassword(
 		15*time.Minute,
 	)
 
-	authService := NewAuthService(
-		repo,
-		jwtManager,
-	)
+	authService := newTestAuthService(repo, jwtManager)
 
 	_, err := authService.Register(
 		context.Background(),
@@ -290,10 +286,7 @@ func TestAuthServiceLoginUnknownUser(
 		15*time.Minute,
 	)
 
-	authService := NewAuthService(
-		repo,
-		jwtManager,
-	)
+	authService := newTestAuthService(repo, jwtManager)
 
 	_, err := authService.Login(
 		context.Background(),
@@ -327,10 +320,7 @@ func TestAuthServiceDuplicateRegistration(
 		15*time.Minute,
 	)
 
-	authService := NewAuthService(
-		repo,
-		jwtManager,
-	)
+	authService := newTestAuthService(repo, jwtManager)
 
 	input := RegisterInput{
 		Name:     "John Doe",

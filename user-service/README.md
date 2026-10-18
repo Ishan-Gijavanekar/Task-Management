@@ -147,3 +147,20 @@ The MongoDB repository test is opt-in so the normal unit suite remains self-cont
 ```sh
 MONGO_INTEGRATION_URI='mongodb://root:rootpassword@localhost:27017/?authSource=admin' make test-integration
 ```
+
+## Authentication lifecycle
+
+The REST API supports short-lived access tokens and rotating refresh sessions:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
+- `POST /api/v1/auth/verify-email`
+- `POST /api/v1/auth/resend-verification`
+
+Refresh tokens are stored as SHA-256 hashes and sent to browsers using an HttpOnly cookie. Reusing a rotated refresh token revokes its token family. Set `AUTH_REQUIRE_EMAIL_VERIFICATION=true` to require verification before login. Development verification and reset links are written to structured logs; non-development environments should configure the SMTP variables from `.env.example`.
+
+`GET /health/live` reports process liveness. `GET /health/ready` checks MongoDB with a bounded timeout. Keep the compatibility endpoint at `GET /health` for existing probes.

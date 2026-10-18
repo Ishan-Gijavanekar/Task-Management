@@ -39,6 +39,10 @@ func TestMongoUserRepositoryIntegration(t *testing.T) {
 	if err := repo.EnsureIndexes(ctx); err != nil {
 		t.Fatalf("EnsureIndexes() error: %v", err)
 	}
+	tokenRepo := NewMongoAuthTokenRepository(mongoDB.Database)
+	if err := tokenRepo.EnsureIndexes(ctx); err != nil {
+		t.Fatalf("auth token EnsureIndexes() error: %v", err)
+	}
 
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	user := &domain.User{
@@ -71,5 +75,21 @@ func TestMongoUserRepositoryIntegration(t *testing.T) {
 	}
 	if _, err := repo.GetByID(ctx, user.ID.Hex()); !errors.Is(err, domain.ErrInvalidUserId) {
 		t.Fatalf("GetByID() after delete error = %v, want ErrInvalidUserId", err)
+	}
+
+	authToken := &domain.AuthToken{
+		ID: primitive.NewObjectID().Hex(), UserID: user.ID.Hex(), TokenHash: "integration-hash",
+		FamilyID: "integration-family", Type: domain.AuthTokenRefresh,
+		CreatedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	if err := tokenRepo.Create(ctx, authToken); err != nil {
+		t.Fatalf("auth token Create() error: %v", err)
+	}
+	foundToken, err := tokenRepo.FindByHash(ctx, authToken.TokenHash, authToken.Type)
+	if err != nil || foundToken.ID != authToken.ID {
+		t.Fatalf("FindByHash() = %#v, %v", foundToken, err)
+	}
+	if err := tokenRepo.Revoke(ctx, authToken.ID, "integration test", now); err != nil {
+		t.Fatalf("auth token Revoke() error: %v", err)
 	}
 }

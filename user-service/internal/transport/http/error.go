@@ -72,6 +72,31 @@ func writeError(
 		statusCode = fiber.StatusUnauthorized
 		code = "TOKEN_EXPIRED"
 		message = "access token expired"
+
+	case errors.Is(err, domain.ErrTokenRevoked):
+		statusCode = fiber.StatusUnauthorized
+		code = "TOKEN_REVOKED"
+		message = "token has been revoked"
+
+	case errors.Is(err, domain.ErrAccountPending):
+		statusCode = fiber.StatusForbidden
+		code = "EMAIL_VERIFICATION_REQUIRED"
+		message = "email verification required"
+
+	case errors.Is(err, domain.ErrAccountSuspended):
+		statusCode = fiber.StatusForbidden
+		code = "ACCOUNT_SUSPENDED"
+		message = "account suspended"
+
+	case errors.Is(err, domain.ErrAccountDeleted):
+		statusCode = fiber.StatusForbidden
+		code = "ACCOUNT_DELETED"
+		message = "account unavailable"
+
+	case errors.Is(err, domain.ErrVersionConflict):
+		statusCode = fiber.StatusConflict
+		code = "VERSION_CONFLICT"
+		message = "resource was modified; reload and retry"
 	}
 
 	return c.Status(

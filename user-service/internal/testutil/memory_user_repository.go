@@ -37,6 +37,12 @@ func (r *MemoryUserRepository) Create(_ context.Context, user *domain.User) erro
 	if _, exists := r.byEmail[user.Email]; exists {
 		return domain.ErrUserAlreadyExsists
 	}
+	if user.Status == "" {
+		user.Status = domain.UserStatusActive
+	}
+	if user.Version == 0 {
+		user.Version = 1
+	}
 	stored := cloneUser(user)
 	r.byID[user.ID.Hex()] = stored
 	r.byEmail[user.Email] = stored
@@ -93,11 +99,15 @@ func (r *MemoryUserRepository) Update(_ context.Context, user *domain.User) erro
 	if !exists {
 		return domain.ErrUserNotFound
 	}
+	if old.Version != user.Version {
+		return domain.ErrVersionConflict
+	}
 	if current, exists := r.byEmail[user.Email]; exists && current.ID != user.ID {
 		return domain.ErrUserAlreadyExsists
 	}
 	delete(r.byEmail, old.Email)
 	stored := cloneUser(user)
+	stored.Version++
 	r.byID[user.ID.Hex()] = stored
 	r.byEmail[user.Email] = stored
 	return nil

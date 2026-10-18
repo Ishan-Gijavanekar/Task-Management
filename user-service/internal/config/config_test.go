@@ -31,3 +31,16 @@ func TestGetEnvDurationRejectsInvalidValue(t *testing.T) {
 		t.Fatal("getEnvDuration() accepted invalid duration")
 	}
 }
+
+func TestConfigurationParsesRotationKeysAndTrustedProxies(t *testing.T) {
+	t.Setenv("TEST_KEYS", "old:old-secret,older:older-secret")
+	keys := getEnvKeyMap("TEST_KEYS")
+	if keys["old"] != "old-secret" || keys["older"] != "older-secret" {
+		t.Fatalf("getEnvKeyMap() = %#v", keys)
+	}
+	t.Setenv("TEST_PROXIES", "10.0.0.1, 10.0.0.2")
+	proxies := getEnvCSV("TEST_PROXIES")
+	if len(proxies) != 2 || proxies[1] != "10.0.0.2" {
+		t.Fatalf("getEnvCSV() = %#v", proxies)
+	}
+}

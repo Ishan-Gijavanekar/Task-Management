@@ -55,6 +55,8 @@ func (s *UserService) Create(ctx context.Context, user CreateUserInput) (*domain
 		Email:     email,
 		ID:        primitive.NewObjectID(),
 		Role:      domain.UserRoleUser,
+		Status:    domain.UserStatusActive,
+		Version:   1,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -133,13 +135,16 @@ func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInp
 	}
 
 	update := &domain.User{
-		ID:           user.ID,
-		Name:         name,
-		Email:        email,
-		PasswordHash: user.PasswordHash,
-		Role:         user.Role,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    time.Now(),
+		ID:              user.ID,
+		Name:            name,
+		Email:           email,
+		PasswordHash:    user.PasswordHash,
+		Role:            user.Role,
+		Status:          user.Status,
+		Version:         user.Version,
+		EmailVerifiedAt: user.EmailVerifiedAt,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       time.Now(),
 	}
 
 	err = u.userRepository.Update(ctx, update)
@@ -147,6 +152,7 @@ func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInp
 		return nil, err
 	}
 
+	update.Version++
 	return update, err
 }
 

@@ -23,16 +23,25 @@ type Server struct {
 
 func NewServer(
 	cfg config.HTTPConfig,
+	authCfg config.AuthConfig,
 	userService *service.UserService,
 	authService *service.AuthService,
 	jwtManager *auth.JWTManager,
 	logger *slog.Logger,
+	readinessCheckers ...ReadinessChecker,
 ) *Server {
+	var readinessChecker ReadinessChecker
+	if len(readinessCheckers) > 0 {
+		readinessChecker = readinessCheckers[0]
+	}
 	app := fiber.New(fiber.Config{
-		AppName:               "user-service",
-		DisableStartupMessage: true,
-		BodyLimit:             cfg.BodyLimitMB * 1024 * 1024,
-		ErrorHandler:          NewErrorHandler(logger),
+		AppName:                 "user-service",
+		DisableStartupMessage:   true,
+		BodyLimit:               cfg.BodyLimitMB * 1024 * 1024,
+		ErrorHandler:            NewErrorHandler(logger),
+		ProxyHeader:             fiber.HeaderXForwardedFor,
+		EnableTrustedProxyCheck: len(cfg.TrustedProxies) > 0,
+		TrustedProxies:          cfg.TrustedProxies,
 	})
 
 	app.Use(requestid.New())
@@ -40,12 +49,13 @@ func NewServer(
 	app.Use(recover.New())
 	app.Use(httpmiddleware.Security())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: cfg.AllowedOrigins,
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
+		AllowOrigins:     cfg.AllowedOrigins,
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+		AllowCredentials: true,
 	}))
 
-	authHandler := NewAuthHandler(authService)
+	authHandler := NewAuthHandler(authService, authCfg)
 	userHandler := NewUserHandler(userService)
 	authMiddleware := httpmiddleware.NewAuthMiddleware(jwtManager)
 
@@ -54,6 +64,7 @@ func NewServer(
 		authHandler,
 		userHandler,
 		authMiddleware,
+		readinessChecker,
 	)
 
 	return &Server{

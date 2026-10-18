@@ -25,10 +25,11 @@ import (
 func newBufconnClients(t *testing.T) (authv1.AuthServiceClient, userv1.UserServiceClient) {
 	t.Helper()
 	repo := testutil.NewMemoryUserRepository()
+	tokenRepo := testutil.NewMemoryAuthTokenRepository()
 	var userRepo repository.UserRespository = repo
 	userService := service.NewUserService(&userRepo)
 	jwtManager := auth.NewJWTManager("grpc-test-secret", "user-service-test", 15*time.Minute)
-	authService := service.NewAuthService(userRepo, jwtManager)
+	authService := service.NewAuthService(userRepo, jwtManager, service.WithAuthTokenRepository(tokenRepo))
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	server := NewServer("0", false, userService, authService, jwtManager, logger)
 

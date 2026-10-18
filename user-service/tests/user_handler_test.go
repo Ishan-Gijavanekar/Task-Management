@@ -263,8 +263,8 @@ func TestGetUsersValidationAndErrors(t *testing.T) {
 	}
 
 	handler = newUserHandler(&fakeUserRepository{listErr: errors.New("database failed")})
-	if _, err := handler.GetUsers(adminContext(), &userv1.ListUserRequest{}); status.Code(err) != codes.Unknown {
-		t.Fatalf("expected Unknown for repository error, got %s (%v)", status.Code(err), err)
+	if _, err := handler.GetUsers(adminContext(), &userv1.ListUserRequest{}); status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal for repository error, got %s (%v)", status.Code(err), err)
 	}
 }
 

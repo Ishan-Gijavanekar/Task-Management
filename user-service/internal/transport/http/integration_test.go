@@ -31,14 +31,15 @@ const integrationTestTimeoutMilliseconds = 30_000
 
 func newHTTPTestStack() *httpTestStack {
 	repo := testutil.NewMemoryUserRepository()
+	tokenRepo := testutil.NewMemoryAuthTokenRepository()
 	var userRepo repository.UserRespository = repo
 	userService := service.NewUserService(&userRepo)
 	jwtManager := auth.NewJWTManager("integration-test-secret", "user-service-test", 15*time.Minute)
-	authService := service.NewAuthService(userRepo, jwtManager)
+	authService := service.NewAuthService(userRepo, jwtManager, service.WithAuthTokenRepository(tokenRepo))
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	server := NewServer(config.HTTPConfig{
 		Port: "0", AllowedOrigins: "http://localhost:5173", BodyLimitMB: 1,
-	}, userService, authService, jwtManager, logger)
+	}, config.AuthConfig{RefreshCookieName: "refresh_token"}, userService, authService, jwtManager, logger)
 	return &httpTestStack{server: server, repo: repo, jwt: jwtManager}
 }
 
@@ -95,7 +96,22 @@ func TestHTTPRegisterLoginAndSelfAccess(t *testing.T) {
 	if login.StatusCode != fiber.StatusOK {
 		t.Fatalf("login status = %d, want %d", login.StatusCode, fiber.StatusOK)
 	}
+	loginCookies := login.Cookies()
+	if len(loginCookies) == 0 || loginCookies[0].Value == "" || !loginCookies[0].HttpOnly {
+		t.Fatal("login did not set an HttpOnly refresh cookie")
+	}
 	loggedIn := decodeHTTPBody[AuthResponse](t, login)
+	refresh := performJSONRequest(t, stack.server, nethttp.MethodPost, "/api/v1/auth/refresh", RefreshRequest{
+		RefreshToken: loginCookies[0].Value,
+	}, "")
+	if refresh.StatusCode != fiber.StatusOK {
+		t.Fatalf("refresh status = %d, want %d", refresh.StatusCode, fiber.StatusOK)
+	}
+	refreshedCookies := refresh.Cookies()
+	if len(refreshedCookies) == 0 || refreshedCookies[0].Value == loginCookies[0].Value {
+		t.Fatal("refresh endpoint did not rotate the refresh cookie")
+	}
+	decodeHTTPBody[AuthResponse](t, refresh)
 
 	get := performJSONRequest(t, stack.server, nethttp.MethodGet, "/api/v1/users/"+registered.User.ID, nil, loggedIn.AccessToken)
 	if get.StatusCode != fiber.StatusOK {

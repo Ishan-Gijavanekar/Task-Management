@@ -10,6 +10,16 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: user-service
@@ -23,3 +33,26 @@ jobs:
       - run: go vet ./...
       - run: go test -race ./...
       - run: make test-cover
+      - run: make coverage-check
+      - name: MongoDB repository integration test
+        env:
+          MONGO_INTEGRATION_URI: mongodb://localhost:27017
+        run: make test-integration
+      - name: Vulnerability scan
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gitleaks/gitleaks-action@v2
+      - name: Build production image
+        run: docker build -t user-service:test ./user-service
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: user-service:test
+          severity: HIGH,CRITICAL
+          exit-code: "1"

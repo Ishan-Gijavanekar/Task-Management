@@ -23,6 +23,12 @@ func NewMongoUserRepository(database *mongo.Database) *MongoUserRepository {
 }
 
 func (r *MongoUserRepository) Create(ctx context.Context, user *domain.User) error {
+	if user.Status == "" {
+		user.Status = domain.UserStatusActive
+	}
+	if user.Version == 0 {
+		user.Version = 1
+	}
 	_, err := r.collection.InsertOne(ctx, user)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
@@ -112,12 +118,30 @@ func (r *MongoUserRepository) Update(ctx context.Context, user *domain.User) err
 		return domain.ErrInvalidUserId
 	}
 
-	result, err := r.collection.UpdateByID(ctx, user.ID, user)
+	versionFilter := bson.M{"version": user.Version}
+	if user.Version == 0 {
+		versionFilter = bson.M{"$or": bson.A{bson.M{"version": 0}, bson.M{"version": bson.M{"$exists": false}}}}
+	}
+	filter := bson.M{"_id": user.ID}
+	for key, value := range versionFilter {
+		filter[key] = value
+	}
+	result, err := r.collection.UpdateOne(ctx,
+		filter,
+		bson.M{
+			"$set": bson.M{
+				"name": user.Name, "email": user.Email, "password_hash": user.PasswordHash,
+				"role": user.Role, "status": user.Status, "emailVerifiedAt": user.EmailVerifiedAt,
+				"updatedAt": user.UpdatedAt,
+			},
+			"$inc": bson.M{"version": 1},
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("Error in update: %v", err)
 	}
 	if result.MatchedCount == 0 {
-		return domain.ErrUserNotFound
+		return domain.ErrVersionConflict
 	}
 
 	return nil

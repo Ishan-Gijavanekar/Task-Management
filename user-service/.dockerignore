@@ -1,0 +1,9 @@
+.env
+.git
+.github
+.gocache
+coverage.out
+bin
+build
+dist
+README.md

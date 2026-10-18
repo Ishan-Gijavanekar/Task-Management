@@ -10,22 +10,47 @@ import (
 )
 
 type JWTManager struct {
-	secret              []byte
+	activeKeyID         string
+	keys                map[string][]byte
 	issuer              string
 	accessTokenDuration time.Duration
 }
 
 func NewJWTManager(secret, issuer string, accessTokenDuration time.Duration) *JWTManager {
+	return NewRotatingJWTManager("current", map[string]string{"current": secret}, issuer, accessTokenDuration)
+}
+
+func NewRotatingJWTManager(activeKeyID string, keys map[string]string, issuer string, accessTokenDuration time.Duration) *JWTManager {
+	parsedKeys := make(map[string][]byte, len(keys))
+	for keyID, secret := range keys {
+		if keyID != "" && secret != "" {
+			parsedKeys[keyID] = []byte(secret)
+		}
+	}
 	return &JWTManager{
-		secret:              []byte(secret),
+		activeKeyID:         activeKeyID,
+		keys:                parsedKeys,
 		issuer:              issuer,
 		accessTokenDuration: accessTokenDuration,
 	}
 }
 
+func (m *JWTManager) Validate() error {
+	if m == nil || m.issuer == "" {
+		return fmt.Errorf("jwt manager: %w", domain.ErrInvalidConfiguration)
+	}
+	if m.activeKeyID == "" || len(m.keys[m.activeKeyID]) == 0 {
+		return fmt.Errorf("jwt manager: %w: active signing key is missing", domain.ErrInvalidConfiguration)
+	}
+	return nil
+}
+
 func (m *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 	if user == nil {
 		return "", fmt.Errorf("failed to generate token user is nil")
+	}
+	if err := m.Validate(); err != nil {
+		return "", err
 	}
 
 	now := time.Now()
@@ -43,7 +68,8 @@ func (m *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(m.secret)
+	token.Header["kid"] = m.activeKeyID
+	signedToken, err := token.SignedString(m.keys[m.activeKeyID])
 	if err != nil {
 		return "", fmt.Errorf("fail to sign access token %w", err)
 	}
@@ -66,7 +92,15 @@ func (m *JWTManager) ValidateAccessToken(tokenString string) (*Claims, error) {
 				return nil, fmt.Errorf("Unexpected signing method: %s", token.Method.Alg())
 			}
 
-			return m.secret, nil
+			keyID, _ := token.Header["kid"].(string)
+			if keyID == "" {
+				keyID = m.activeKeyID
+			}
+			key, ok := m.keys[keyID]
+			if !ok {
+				return nil, domain.ErrInvalidToken
+			}
+			return key, nil
 		},
 		jwt.WithIssuer(m.issuer),
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),

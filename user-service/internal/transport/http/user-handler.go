@@ -20,12 +20,14 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 type UserResponse struct {
-	ID        string          `json:"id"`
-	Name      string          `json:"name"`
-	Email     string          `json:"email"`
-	CreatedAt string          `json:"createdAt"`
-	UpdatedAt string          `json:"updatedAt"`
-	Role      domain.UserRole `json:"role"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Email     string            `json:"email"`
+	CreatedAt string            `json:"createdAt"`
+	UpdatedAt string            `json:"updatedAt"`
+	Role      domain.UserRole   `json:"role"`
+	Status    domain.UserStatus `json:"status"`
+	Version   int64             `json:"version"`
 }
 
 type UpdateRequest struct {
@@ -46,6 +48,8 @@ func userToHttpResponse(user *domain.User) UserResponse {
 		Name:      user.Name,
 		Email:     user.Email,
 		Role:      user.Role,
+		Status:    user.Status,
+		Version:   user.Version,
 		CreatedAt: user.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.UTC().Format(time.RFC3339),
 	}

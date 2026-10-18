@@ -25,12 +25,12 @@ func main() {
 		log.Fatal("Failed to load config ", err)
 	}
 
-	appLogger := logger.New(cfg.App.Enviornment)
-	appLogger.Info("Starting application", "name", cfg.App.Name, "enviournment", cfg.App.Enviornment)
+	appLogger := logger.New(cfg.App.Environment)
+	appLogger.Info("Starting application", "name", cfg.App.Name, "environment", cfg.App.Environment)
 
 	mongoDb, err := database.NewMongoDB(
-		cfg.MongoDb.URI,
-		cfg.MongoDb.Database,
+		cfg.MongoDB.URI,
+		cfg.MongoDB.Database,
 		*appLogger,
 	)
 	if err != nil {
@@ -42,6 +42,7 @@ func main() {
 		mongoDb.Database,
 	)
 	var userRepository repository.UserRespository = mongoUserRepository
+	mongoTokenRepository := repository.NewMongoAuthTokenRepository(mongoDb.Database)
 
 	indexContext, cancelIndexes := context.WithTimeout(
 		context.Background(),
@@ -59,14 +60,42 @@ func main() {
 
 		os.Exit(1)
 	}
+	if err := mongoTokenRepository.EnsureIndexes(indexContext); err != nil {
+		appLogger.Error("Failed to initialize auth token indexes", "error", err)
+		os.Exit(1)
+	}
 
 	userService := service.NewUserService(&userRepository)
-	jwtManager := auth.NewJWTManager(
-		cfg.JWT.Secret,
+	signingKeys := cfg.JWT.PreviousKeys
+	signingKeys[cfg.JWT.ActiveKeyID] = cfg.JWT.Secret
+	jwtManager := auth.NewRotatingJWTManager(
+		cfg.JWT.ActiveKeyID,
+		signingKeys,
 		cfg.JWT.Issuer,
 		cfg.JWT.AccessTokenDuration,
 	)
-	authService := service.NewAuthService(userRepository, jwtManager)
+	authOptions := []service.AuthServiceOption{
+		service.WithAuthTokenRepository(mongoTokenRepository),
+		service.WithRefreshTokenDuration(cfg.Auth.RefreshTokenDuration),
+		service.WithEmailVerificationRequired(cfg.Auth.RequireEmailVerification),
+	}
+	if cfg.App.Environment == "development" {
+		authOptions = append(authOptions, service.WithAuthNotificationSender(
+			service.NewDevelopmentAuthNotifier(appLogger, cfg.Auth.FrontendURL),
+		))
+	} else if cfg.Auth.SMTPHost != "" {
+		authOptions = append(authOptions, service.WithAuthNotificationSender(
+			service.NewSMTPAuthNotifier(
+				cfg.Auth.SMTPHost, cfg.Auth.SMTPPort, cfg.Auth.SMTPUsername,
+				cfg.Auth.SMTPPassword, cfg.Auth.SMTPFrom, cfg.Auth.FrontendURL,
+			),
+		))
+	}
+	authService := service.NewAuthService(userRepository, jwtManager, authOptions...)
+	if err := authService.Validate(); err != nil {
+		appLogger.Error("Invalid authentication configuration", "error", err)
+		os.Exit(1)
+	}
 
 	grpcServer := grpcTransport.NewServer(
 		cfg.GRPC.Port,
@@ -79,10 +108,12 @@ func main() {
 
 	httpServer := httpTransport.NewServer(
 		cfg.HTTP,
+		cfg.Auth,
 		userService,
 		authService,
 		jwtManager,
 		appLogger,
+		mongoDb,
 	)
 
 	serverErrors := make(chan error, 2)

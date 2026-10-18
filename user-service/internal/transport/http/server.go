@@ -6,9 +6,13 @@ import (
 	"log/slog"
 
 	"github.com/Ishan-Gijavanekar/user-service/internal/auth"
+	"github.com/Ishan-Gijavanekar/user-service/internal/config"
 	"github.com/Ishan-Gijavanekar/user-service/internal/service"
 	httpmiddleware "github.com/Ishan-Gijavanekar/user-service/internal/transport/http/middleware"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
 )
 
 type Server struct {
@@ -18,19 +22,34 @@ type Server struct {
 }
 
 func NewServer(
-	port string,
+	cfg config.HTTPConfig,
 	userService *service.UserService,
 	authService *service.AuthService,
 	jwtManager *auth.JWTManager,
 	logger *slog.Logger,
 ) *Server {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		AppName:               "user-service",
+		DisableStartupMessage: true,
+		BodyLimit:             cfg.BodyLimitMB * 1024 * 1024,
+		ErrorHandler:          NewErrorHandler(logger),
+	})
+
+	app.Use(requestid.New())
+	app.Use(httpmiddleware.Logging(logger))
+	app.Use(recover.New())
+	app.Use(httpmiddleware.Security())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: cfg.AllowedOrigins,
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
+	}))
 
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userService)
 	authMiddleware := httpmiddleware.NewAuthMiddleware(jwtManager)
 
-	RegisterRoutes(
+	registerRoutes(
 		app,
 		authHandler,
 		userHandler,
@@ -39,7 +58,7 @@ func NewServer(
 
 	return &Server{
 		app:    app,
-		port:   port,
+		port:   cfg.Port,
 		logger: logger,
 	}
 }

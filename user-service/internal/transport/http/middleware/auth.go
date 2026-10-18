@@ -50,7 +50,7 @@ func (a *AuthMiddleware) Authenticate(c *fiber.Ctx) error {
 	}
 
 	authenticateUser := auth.AuthenticatedUser{
-		ID:    claims.ID,
+		ID:    claims.UserID,
 		Email: claims.Email,
 		Role:  claims.Role,
 	}

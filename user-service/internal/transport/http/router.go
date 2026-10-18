@@ -12,18 +12,18 @@ func health(c *fiber.Ctx) error {
 		})
 }
 
-func RegisterRoutes(app *fiber.App, authHandler *AuthHandler, userHandler *UserHandler, authMiddleware *httpmiddleware.AuthMiddleware) {
+func registerRoutes(app *fiber.App, authHandler *AuthHandler, userHandler *UserHandler, authMiddleware *httpmiddleware.AuthMiddleware) {
 	app.Get("/health", health)
 
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
-	authGroup := v1.Group("/auth")
+	authGroup := v1.Group("/auth", httpmiddleware.AuthRateLimiter())
 
 	authGroup.Post("/register", authHandler.Register)
 	authGroup.Post("/login", authHandler.Login)
 
-	userGroup := v1.Group("/isers0", authMiddleware.Authenticate)
+	userGroup := v1.Group("/users", authMiddleware.Authenticate)
 
 	userGroup.Get("/", userHandler.ListUsers)
 	userGroup.Get("/:id", userHandler.GetUser)

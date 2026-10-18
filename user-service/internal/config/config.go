@@ -19,8 +19,10 @@ type GRPCConfig struct {
 	EnableReflection bool
 }
 
-type HTTPCOnfig struct {
-	Port string
+type HTTPConfig struct {
+	Port           string
+	AllowedOrigins string
+	BodyLimitMB    int
 }
 
 type MongoDbConfig struct {
@@ -37,7 +39,7 @@ type JWTCOnfig struct {
 type Config struct {
 	App     AppConfig
 	GRPC    GRPCConfig
-	HTTP    HTTPCOnfig
+	HTTP    HTTPConfig
 	MongoDb MongoDbConfig
 	JWT     JWTCOnfig
 }
@@ -84,13 +86,23 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	bodyLimitMB, err := getEnvInt("HTTP_BODY_LIMIT_MB", 1)
+	if err != nil {
+		return nil, err
+	}
+	if bodyLimitMB <= 0 {
+		return nil, fmt.Errorf("HTTP_BODY_LIMIT_MB must be positive")
+	}
+
 	cfg := Config{
 		App: AppConfig{
 			Name:        getEnv("APP_NAME", "user-service"),
 			Enviornment: getEnv("APP_ENV", "development"),
 		},
-		HTTP: HTTPCOnfig{
-			Port: getEnv("HTTP_PORT", "8080"),
+		HTTP: HTTPConfig{
+			Port:           getEnv("HTTP_PORT", "8080"),
+			AllowedOrigins: getEnv("HTTP_ALLOWED_ORIGINS", "http://localhost:5173"),
+			BodyLimitMB:    bodyLimitMB,
 		},
 		GRPC: GRPCConfig{
 			Port:             getEnv("GRPC_PORT", "50051"),
@@ -113,6 +125,20 @@ func Load() (*Config, error) {
 	}
 
 	return &cfg, err
+}
+
+func getEnvInt(key string, fallback int) (int, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback, nil
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid integer for %s: %w", key, err)
+	}
+
+	return parsed, nil
 }
 
 func getEnvBool(key string, fallback bool) bool {

@@ -78,7 +78,7 @@ func main() {
 	)
 
 	httpServer := httpTransport.NewServer(
-		cfg.HTTP.Port,
+		cfg.HTTP,
 		userService,
 		authService,
 		jwtManager,

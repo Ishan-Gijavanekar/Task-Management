@@ -1,4 +1,4 @@
-GOCACHE ?= ../.gocache
+GOCACHE ?= $(abspath ../.gocache)
 COVER_PACKAGES := ./internal/auth ./internal/config ./internal/repository ./internal/service ./internal/transport/grpc ./internal/transport/grpc/interceptor ./internal/transport/http ./tests
 
 .PHONY: fmt vet test test-race test-cover test-integration quality

@@ -79,7 +79,7 @@ func (r *MongoUserRepository) GetByEmail(ctx context.Context, email string) (*do
 }
 
 func (r *MongoUserRepository) List(ctx context.Context, params ListUserParmas) ([]*domain.User, int64, error) {
-	skip := (params.Limit - 1) * params.Size
+	skip := (params.Size - 1) * params.Limit
 
 	findOptions := options.Find().
 		SetSkip(int64(skip)).
@@ -112,9 +112,12 @@ func (r *MongoUserRepository) Update(ctx context.Context, user *domain.User) err
 		return domain.ErrInvalidUserId
 	}
 
-	_, err := r.collection.UpdateByID(ctx, user.ID, user)
+	result, err := r.collection.UpdateByID(ctx, user.ID, user)
 	if err != nil {
 		return fmt.Errorf("Error in update: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return domain.ErrUserNotFound
 	}
 
 	return nil
@@ -126,9 +129,12 @@ func (r *MongoUserRepository) Delete(ctx context.Context, id string) error {
 		return domain.ErrInvalidUserId
 	}
 
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectId})
+	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectId})
 	if err != nil {
 		return fmt.Errorf("Error in delete: %v", err)
+	}
+	if result.DeletedCount == 0 {
+		return domain.ErrUserNotFound
 	}
 
 	return nil

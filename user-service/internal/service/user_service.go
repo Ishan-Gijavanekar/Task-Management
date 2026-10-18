@@ -133,12 +133,13 @@ func (u *UserService) Update(ctx context.Context, id string, input UpdateUserInp
 	}
 
 	update := &domain.User{
-		ID:        user.ID,
-		Name:      name,
-		Email:     email,
-		Role:      domain.UserRoleUser,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: time.Now(),
+		ID:           user.ID,
+		Name:         name,
+		Email:        email,
+		PasswordHash: user.PasswordHash,
+		Role:         user.Role,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    time.Now(),
 	}
 
 	err = u.userRepository.Update(ctx, update)

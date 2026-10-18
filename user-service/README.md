@@ -126,3 +126,24 @@ Planned functionality includes:
 ## License
 
 This project is intended for learning and demonstration purposes.
+
+## Testing and quality
+
+Run the standard checks from this directory:
+
+```sh
+make quality
+```
+
+Run race detection and produce a coverage report with:
+
+```sh
+make test-race
+make test-cover
+```
+
+The MongoDB repository test is opt-in so the normal unit suite remains self-contained. Start MongoDB, then run:
+
+```sh
+MONGO_INTEGRATION_URI='mongodb://root:rootpassword@localhost:27017/?authSource=admin' make test-integration
+```

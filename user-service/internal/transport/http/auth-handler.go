@@ -84,7 +84,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return writeError(c, err)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(AuthResponseFromResult(result))
+	return c.Status(fiber.StatusCreated).JSON(AuthResponseFromResult(result))
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
@@ -107,5 +107,5 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return writeError(c, err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(AuthResponseFromResult(result))
+	return c.Status(fiber.StatusOK).JSON(AuthResponseFromResult(result))
 }

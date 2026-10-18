@@ -82,7 +82,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthR
 	return &AuthResult{
 		User:        user,
 		AccessToken: accessToken,
-		ExpiresIn:   int64(s.jwtManager.AccessTokenDuration()),
+		ExpiresIn:   int64(s.jwtManager.AccessTokenDuration().Seconds()),
 	}, nil
 }
 
@@ -96,7 +96,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 	user, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			return nil, domain.ErrUserNotFound
+			return nil, domain.ErrInvalidCredentials
 		}
 
 		return nil, err
@@ -121,6 +121,6 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 	return &AuthResult{
 		User:        user,
 		AccessToken: accessToken,
-		ExpiresIn:   int64(s.jwtManager.AccessTokenDuration()),
+		ExpiresIn:   int64(s.jwtManager.AccessTokenDuration().Seconds()),
 	}, nil
 }

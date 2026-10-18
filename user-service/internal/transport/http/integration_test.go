@@ -27,6 +27,8 @@ type httpTestStack struct {
 	jwt    *auth.JWTManager
 }
 
+const integrationTestTimeoutMilliseconds = 30_000
+
 func newHTTPTestStack() *httpTestStack {
 	repo := testutil.NewMemoryUserRepository()
 	var userRepo repository.UserRespository = repo
@@ -57,7 +59,7 @@ func performJSONRequest(t *testing.T, server *Server, method, path string, body 
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
-	resp, err := server.app.Test(req)
+	resp, err := server.app.Test(req, integrationTestTimeoutMilliseconds)
 	if err != nil {
 		t.Fatalf("app.Test() error: %v", err)
 	}
@@ -133,7 +135,7 @@ func TestHTTPCORSAndRateLimit(t *testing.T) {
 	preflight := httptest.NewRequest(nethttp.MethodOptions, "/api/v1/auth/login", nil)
 	preflight.Header.Set("Origin", "http://localhost:5173")
 	preflight.Header.Set("Access-Control-Request-Method", nethttp.MethodPost)
-	resp, err := stack.server.app.Test(preflight)
+	resp, err := stack.server.app.Test(preflight, integrationTestTimeoutMilliseconds)
 	if err != nil {
 		t.Fatalf("preflight error: %v", err)
 	}

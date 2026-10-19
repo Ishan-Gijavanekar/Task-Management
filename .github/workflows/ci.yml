@@ -8,6 +8,22 @@ permissions:
   contents: read
 
 jobs:
+  task-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: task-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: task-service/go.mod
+          cache-dependency-path: task-service/go.sum
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: docker build -t task-service:test .
+
   quality:
     runs-on: ubuntu-latest
     services:
@@ -55,5 +71,14 @@ jobs:
         with:
           scan-type: image
           image-ref: user-service:test
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+      - name: Build task service image
+        run: docker build -t task-service:test ./task-service
+      - name: Scan task service image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: task-service:test
           severity: HIGH,CRITICAL
           exit-code: "1"

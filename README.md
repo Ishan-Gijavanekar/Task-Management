@@ -40,6 +40,7 @@ Client / API Consumer
 ## Current Services
 
 - **user-service**: Handles user-related operations and exposes gRPC handlers backed by service and repository layers.
+- **task-service**: Handles workspace-scoped task lifecycle, filtering, ordering, idempotency, activity history, REST, and gRPC APIs.
 
 ## Tech Stack
 

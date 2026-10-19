@@ -1,0 +1,67 @@
+openapi: 3.1.0
+info:
+  title: Task Service REST API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /workspaces/{workspaceId}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/WorkspaceId'
+    post:
+      operationId: createTask
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateTask' } } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }, '409': { $ref: '#/components/responses/Error' } }
+    get:
+      operationId: listTasks
+      parameters:
+        - { name: projectId, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: priority, in: query, schema: { type: string } }
+        - { name: assigneeId, in: query, schema: { type: string } }
+        - { name: reporterId, in: query, schema: { type: string } }
+        - { name: labelId, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, maximum: 200, default: 50 } }
+      responses: { '200': { description: Page, content: { application/json: { schema: { type: object, properties: { tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }, nextCursor: { type: string } } } } } } }
+  /workspaces/{workspaceId}/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/WorkspaceId'
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getTask
+      responses: { '200': { description: Task, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }, '404': { $ref: '#/components/responses/Error' } }
+    patch:
+      operationId: updateTask
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateTask' } } } }
+      responses: { '200': { description: Updated }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: archiveTask
+      parameters: [{ name: version, in: query, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      responses: { '204': { description: Archived }, '409': { $ref: '#/components/responses/Error' } }
+  /workspaces/{workspaceId}/tasks/{id}/restore:
+    post: { operationId: restoreTask, parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { name: id, in: path, required: true, schema: { type: string } }, { $ref: '#/components/parameters/IdempotencyKey' }], responses: { '200': { description: Restored } } }
+  /workspaces/{workspaceId}/tasks/{id}/reorder:
+    post: { operationId: reorderTask, parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { name: id, in: path, required: true, schema: { type: string } }, { $ref: '#/components/parameters/IdempotencyKey' }], responses: { '200': { description: Reordered } } }
+  /workspaces/{workspaceId}/tasks:batch:
+    patch: { operationId: batchUpdateTasks, parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { $ref: '#/components/parameters/IdempotencyKey' }], responses: { '200': { description: Updated atomically } } }
+components:
+  securitySchemes: { bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT } }
+  parameters:
+    WorkspaceId: { name: workspaceId, in: path, required: true, schema: { type: string } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 200 } }
+  responses:
+    Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Task:
+      type: object
+      required: [id, workspaceId, projectId, title, status, priority, reporterId, position, version, createdAt, updatedAt]
+      properties: { id: { type: string }, workspaceId: { type: string }, projectId: { type: string }, title: { type: string }, description: { type: string }, status: { type: string }, priority: { type: string }, assigneeId: { type: string }, reporterId: { type: string }, labelIds: { type: array, items: { type: string } }, dueDate: { type: [string, 'null'], format: date-time }, startDate: { type: [string, 'null'], format: date-time }, estimateMinutes: { type: integer }, position: { type: number }, version: { type: integer }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time } }
+    CreateTask: { type: object, required: [projectId, title], properties: { projectId: { type: string }, title: { type: string, maxLength: 300 }, description: { type: string }, priority: { type: string }, assigneeId: { type: string }, labelIds: { type: array, items: { type: string } } } }
+    UpdateTask: { allOf: [{ $ref: '#/components/schemas/CreateTask' }, { type: object, required: [version], properties: { status: { type: string }, version: { type: integer } } }] }
+    Error: { type: object, properties: { error: { type: object, required: [code, message], properties: { code: { type: string }, message: { type: string }, requestId: { type: string } } } } }

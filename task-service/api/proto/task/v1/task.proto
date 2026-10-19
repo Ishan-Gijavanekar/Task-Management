@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package task.v1;
+option go_package = "github.com/Ishan-Gijavanekar/task-service/api/proto/task/v1;taskv1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message Task {
+  string id = 1;
+  string workspace_id = 2;
+  string project_id = 3;
+  string title = 4;
+  string description = 5;
+  string status = 6;
+  string priority = 7;
+  string assignee_id = 8;
+  string reporter_id = 9;
+  repeated string label_ids = 10;
+  google.protobuf.Timestamp due_date = 11;
+  google.protobuf.Timestamp start_date = 12;
+  int64 estimate_minutes = 13;
+  double position = 14;
+  int64 version = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+  google.protobuf.Timestamp deleted_at = 18;
+}
+
+message CreateTaskRequest { string workspace_id = 1; string project_id = 2; string title = 3; string description = 4; string priority = 5; string assignee_id = 6; repeated string label_ids = 7; google.protobuf.Timestamp due_date = 8; google.protobuf.Timestamp start_date = 9; int64 estimate_minutes = 10; string idempotency_key = 11; }
+message GetTaskRequest { string workspace_id = 1; string id = 2; bool include_deleted = 3; }
+message UpdateTaskRequest { string workspace_id = 1; string id = 2; string title = 3; string description = 4; string status = 5; string priority = 6; string assignee_id = 7; repeated string label_ids = 8; google.protobuf.Timestamp due_date = 9; google.protobuf.Timestamp start_date = 10; int64 estimate_minutes = 11; int64 version = 12; string idempotency_key = 13; }
+message DeleteTaskRequest { string workspace_id = 1; string id = 2; int64 version = 3; string idempotency_key = 4; }
+message RestoreTaskRequest { string workspace_id = 1; string id = 2; int64 version = 3; string idempotency_key = 4; }
+message ReorderTaskRequest { string workspace_id = 1; string id = 2; optional double before_position = 3; optional double after_position = 4; int64 version = 5; string idempotency_key = 6; }
+message ListTasksRequest { string workspace_id = 1; string project_id = 2; repeated string statuses = 3; repeated string priorities = 4; string assignee_id = 5; string reporter_id = 6; string label_id = 7; google.protobuf.Timestamp due_from = 8; google.protobuf.Timestamp due_to = 9; string query = 10; int32 limit = 11; string cursor = 12; bool include_deleted = 13; }
+message ListTasksResponse { repeated Task tasks = 1; string next_cursor = 2; }
+message BatchUpdateItem { string id = 1; string status = 2; string assignee_id = 3; string priority = 4; int64 version = 5; }
+message BatchUpdateTasksRequest { string workspace_id = 1; repeated BatchUpdateItem items = 2; string idempotency_key = 3; }
+message TaskResponse { Task task = 1; }
+message BatchUpdateTasksResponse { repeated Task tasks = 1; }
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (TaskResponse);
+  rpc GetTask(GetTaskRequest) returns (TaskResponse);
+  rpc UpdateTask(UpdateTaskRequest) returns (TaskResponse);
+  rpc DeleteTask(DeleteTaskRequest) returns (google.protobuf.Empty);
+  rpc RestoreTask(RestoreTaskRequest) returns (TaskResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc BatchUpdateTasks(BatchUpdateTasksRequest) returns (BatchUpdateTasksResponse);
+  rpc ReorderTask(ReorderTaskRequest) returns (TaskResponse);
+}

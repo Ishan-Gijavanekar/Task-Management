@@ -109,7 +109,8 @@ func (s *Service) Create(ctx context.Context, actor string, in CreateInput) (*do
 	if e != nil {
 		return nil, e
 	}
-	deps, e := s.dependencies(ctx, wid, primitive.NilObjectID, in.Dependencies)
+	taskID := primitive.NewObjectID()
+	deps, e := s.dependencies(ctx, wid, taskID, in.Dependencies)
 	if e != nil {
 		return nil, e
 	}
@@ -118,7 +119,7 @@ func (s *Service) Create(ctx context.Context, actor string, in CreateInput) (*do
 	if in.Position != nil {
 		pos = *in.Position
 	}
-	t := &domain.Task{ID: primitive.NewObjectID(), WorkspaceID: wid, ProjectID: pid, Title: title, Description: strings.TrimSpace(in.Description), Status: domain.StatusBacklog, Priority: p, AssigneeID: strings.TrimSpace(in.AssigneeID), ReporterID: actor, LabelIDs: labels, Checklist: in.Checklist, Dependencies: deps, DueDate: in.DueDate, StartDate: in.StartDate, EstimateMinutes: in.EstimateMinutes, Position: pos, Version: 1, CreatedAt: now, UpdatedAt: now}
+	t := &domain.Task{ID: taskID, WorkspaceID: wid, ProjectID: pid, Title: title, Description: strings.TrimSpace(in.Description), Status: domain.StatusBacklog, Priority: p, AssigneeID: strings.TrimSpace(in.AssigneeID), ReporterID: actor, LabelIDs: labels, Checklist: in.Checklist, Dependencies: deps, DueDate: in.DueDate, StartDate: in.StartDate, EstimateMinutes: in.EstimateMinutes, Position: pos, Version: 1, CreatedAt: now, UpdatedAt: now}
 	if e = validate(t); e != nil {
 		return nil, e
 	}
@@ -291,6 +292,16 @@ func (s *Service) List(ctx context.Context, actor string, in ListInput) (*ListRe
 	}
 	if e = s.authorize(ctx, wid, actor); e != nil {
 		return nil, e
+	}
+	for _, status := range in.Statuses {
+		if !status.Valid() {
+			return nil, domain.ErrInvalidArgument
+		}
+	}
+	for _, priority := range in.Priorities {
+		if !priority.Valid() {
+			return nil, domain.ErrInvalidArgument
+		}
 	}
 	f := repository.ListFilter{WorkspaceID: wid, Statuses: in.Statuses, Priorities: in.Priorities, AssigneeID: in.AssigneeID, ReporterID: in.ReporterID, Query: strings.TrimSpace(in.Query), IncludeDeleted: in.IncludeDeleted, DueFrom: in.DueFrom, DueTo: in.DueTo}
 	if in.ProjectID != "" {

@@ -9,6 +9,7 @@ import (
 	"github.com/Ishan-Gijavanekar/task-service/internal/auth"
 	"github.com/Ishan-Gijavanekar/task-service/internal/domain"
 	"github.com/Ishan-Gijavanekar/task-service/internal/service"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -33,7 +34,7 @@ func (h *Handler) CreateTask(ctx context.Context, r *taskv1.CreateTaskRequest) (
 	if e != nil {
 		return nil, e
 	}
-	t, e := h.s.Create(ctx, a, service.CreateInput{WorkspaceID: r.GetWorkspaceId(), ProjectID: r.GetProjectId(), Title: r.GetTitle(), Description: r.GetDescription(), Priority: domain.Priority(r.GetPriority()), AssigneeID: r.GetAssigneeId(), LabelIDs: r.GetLabelIds(), DueDate: asTime(r.GetDueDate()), StartDate: asTime(r.GetStartDate()), EstimateMinutes: r.GetEstimateMinutes(), IdempotencyKey: r.GetIdempotencyKey()})
+	t, e := h.s.Create(ctx, a, service.CreateInput{WorkspaceID: r.GetWorkspaceId(), ProjectID: r.GetProjectId(), Title: r.GetTitle(), Description: r.GetDescription(), Priority: domain.Priority(r.GetPriority()), AssigneeID: r.GetAssigneeId(), LabelIDs: r.GetLabelIds(), DueDate: asTime(r.GetDueDate()), StartDate: asTime(r.GetStartDate()), EstimateMinutes: r.GetEstimateMinutes(), IdempotencyKey: r.GetIdempotencyKey(), Checklist: checklistFromProto(r.GetChecklist()), Dependencies: r.GetDependencyIds()})
 	if e != nil {
 		return nil, mapped(e)
 	}
@@ -55,7 +56,7 @@ func (h *Handler) UpdateTask(ctx context.Context, r *taskv1.UpdateTaskRequest) (
 	if e != nil {
 		return nil, e
 	}
-	t, e := h.s.Update(ctx, a, service.UpdateInput{WorkspaceID: r.GetWorkspaceId(), ID: r.GetId(), Title: r.GetTitle(), Description: r.GetDescription(), Status: domain.TaskStatus(r.GetStatus()), Priority: domain.Priority(r.GetPriority()), AssigneeID: r.GetAssigneeId(), LabelIDs: r.GetLabelIds(), DueDate: asTime(r.GetDueDate()), StartDate: asTime(r.GetStartDate()), EstimateMinutes: r.GetEstimateMinutes(), Version: r.GetVersion(), IdempotencyKey: r.GetIdempotencyKey()})
+	t, e := h.s.Update(ctx, a, service.UpdateInput{WorkspaceID: r.GetWorkspaceId(), ID: r.GetId(), Title: r.GetTitle(), Description: r.GetDescription(), Status: domain.TaskStatus(r.GetStatus()), Priority: domain.Priority(r.GetPriority()), AssigneeID: r.GetAssigneeId(), LabelIDs: r.GetLabelIds(), DueDate: asTime(r.GetDueDate()), StartDate: asTime(r.GetStartDate()), EstimateMinutes: r.GetEstimateMinutes(), Version: r.GetVersion(), IdempotencyKey: r.GetIdempotencyKey(), Checklist: checklistFromProto(r.GetChecklist()), Dependencies: r.GetDependencyIds()})
 	if e != nil {
 		return nil, mapped(e)
 	}
@@ -161,7 +162,26 @@ func toProto(t *domain.Task) *taskv1.Task {
 	for _, id := range t.LabelIDs {
 		labels = append(labels, id.Hex())
 	}
-	return &taskv1.Task{Id: t.ID.Hex(), WorkspaceId: t.WorkspaceID.Hex(), ProjectId: t.ProjectID.Hex(), Title: t.Title, Description: t.Description, Status: string(t.Status), Priority: string(t.Priority), AssigneeId: t.AssigneeID, ReporterId: t.ReporterID, LabelIds: labels, DueDate: stamp(t.DueDate), StartDate: stamp(t.StartDate), EstimateMinutes: t.EstimateMinutes, Position: t.Position, Version: t.Version, CreatedAt: timestamppb.New(t.CreatedAt), UpdatedAt: timestamppb.New(t.UpdatedAt), DeletedAt: stamp(t.DeletedAt)}
+	out := &taskv1.Task{Id: t.ID.Hex(), WorkspaceId: t.WorkspaceID.Hex(), ProjectId: t.ProjectID.Hex(), Title: t.Title, Description: t.Description, Status: string(t.Status), Priority: string(t.Priority), AssigneeId: t.AssigneeID, ReporterId: t.ReporterID, LabelIds: labels, DueDate: stamp(t.DueDate), StartDate: stamp(t.StartDate), EstimateMinutes: t.EstimateMinutes, Position: t.Position, Version: t.Version, CreatedAt: timestamppb.New(t.CreatedAt), UpdatedAt: timestamppb.New(t.UpdatedAt), DeletedAt: stamp(t.DeletedAt)}
+	for _, item := range t.Checklist {
+		out.Checklist = append(out.Checklist, &taskv1.ChecklistItem{Id: item.ID.Hex(), Text: item.Text, Completed: item.Completed, Position: item.Position})
+	}
+	for _, dep := range t.Dependencies {
+		out.Dependencies = append(out.Dependencies, &taskv1.TaskDependency{TaskId: dep.TaskID.Hex(), DependsOnTaskId: dep.DependsOnTaskID.Hex()})
+	}
+	return out
+}
+
+func checklistFromProto(items []*taskv1.ChecklistItem) []domain.ChecklistItem {
+	out := make([]domain.ChecklistItem, 0, len(items))
+	for _, item := range items {
+		id := primitive.NewObjectID()
+		if parsed, e := primitive.ObjectIDFromHex(item.GetId()); e == nil {
+			id = parsed
+		}
+		out = append(out, domain.ChecklistItem{ID: id, Text: item.GetText(), Completed: item.GetCompleted(), Position: item.GetPosition()})
+	}
+	return out
 }
 func mapped(e error) error {
 	code := codes.Internal

@@ -102,6 +102,15 @@ func (r *MongoRepository) Apply(ctx context.Context, mutation Mutation) (*domain
 		return nil, nil
 	})
 	if err != nil {
+		if mutation.Idempotency != nil {
+			existing, lookupErr := r.findIdempotency(ctx, mutation.Idempotency.WorkspaceID, mutation.Idempotency.ActorID, mutation.Idempotency.Key)
+			if lookupErr == nil && existing.RequestHash == mutation.Idempotency.RequestHash {
+				return existing.Task, nil
+			}
+			if lookupErr == nil {
+				return nil, domain.ErrIdempotencyConflict
+			}
+		}
 		return nil, err
 	}
 	return result, nil

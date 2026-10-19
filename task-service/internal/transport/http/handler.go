@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Ishan-Gijavanekar/task-service/internal/domain"
 	"github.com/Ishan-Gijavanekar/task-service/internal/service"
@@ -112,6 +113,20 @@ func (h *Handler) batch(c *fiber.Ctx) error {
 func (h *Handler) list(c *fiber.Ctx) error {
 	in := service.ListInput{WorkspaceID: c.Params("workspaceId"), ProjectID: c.Query("projectId"), AssigneeID: c.Query("assigneeId"), ReporterID: c.Query("reporterId"), LabelID: c.Query("labelId"), Query: c.Query("q"), Cursor: c.Query("cursor"), IncludeDeleted: c.QueryBool("includeDeleted")}
 	in.Limit = int64(c.QueryInt("limit", 50))
+	if raw := c.Query("dueFrom"); raw != "" {
+		v, e := time.Parse(time.RFC3339, raw)
+		if e != nil {
+			return fail(c, domain.ErrInvalidArgument)
+		}
+		in.DueFrom = &v
+	}
+	if raw := c.Query("dueTo"); raw != "" {
+		v, e := time.Parse(time.RFC3339, raw)
+		if e != nil {
+			return fail(c, domain.ErrInvalidArgument)
+		}
+		in.DueTo = &v
+	}
 	for _, v := range split(c.Query("status")) {
 		in.Statuses = append(in.Statuses, domain.TaskStatus(v))
 	}

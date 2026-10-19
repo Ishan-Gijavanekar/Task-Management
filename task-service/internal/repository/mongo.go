@@ -131,6 +131,7 @@ func (r *MongoRepository) ApplyBatch(ctx context.Context, mutations []Mutation) 
 			results = append(results, &copy)
 		}
 		if len(mutations) > 0 && mutations[0].Idempotency != nil {
+			mutations[0].Idempotency.Tasks = results
 			if _, err := r.idempotency.InsertOne(tx, mutations[0].Idempotency); err != nil {
 				return nil, mapMongoError(err)
 			}

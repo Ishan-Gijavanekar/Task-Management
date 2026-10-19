@@ -14,6 +14,7 @@ type Idempotency struct {
 	Key         string             `bson:"key"`
 	RequestHash string             `bson:"requestHash"`
 	Task        *domain.Task       `bson:"task,omitempty"`
+	Tasks       []*domain.Task     `bson:"tasks,omitempty"`
 	CreatedAt   time.Time          `bson:"createdAt"`
 	ExpiresAt   time.Time          `bson:"expiresAt"`
 }

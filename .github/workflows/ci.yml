@@ -59,29 +59,40 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
           govulncheck ./...
 
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Gitleaks scans the pushed commit range and needs its base commit.
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-      - name: Build production image
-        run: docker build -t user-service:test ./user-service
-      - name: Scan production image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: image
-          image-ref: user-service:test
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-      - name: Build task service image
-        run: docker build -t task-service:test ./task-service
-      - name: Scan task service image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: image
-          image-ref: task-service:test
-          severity: HIGH,CRITICAL
-          exit-code: "1"
+  
+security:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Scan repository for secrets
+      run: |
+        docker run --rm \
+          -v "${{ github.workspace }}:/repo" \
+          -w /repo \
+          ghcr.io/gitleaks/gitleaks:v8.30.1 \
+          git /repo --redact --exit-code 1
+
+    - name: Build production image
+      run: docker build -t user-service:test ./user-service
+
+    - name: Scan production image
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+      with:
+        scan-type: image
+        image-ref: user-service:test
+        severity: HIGH,CRITICAL
+        exit-code: "1"
+
+    - name: Build task service image
+      run: docker build -t task-service:test ./task-service
+
+    - name: Scan task service image
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+      with:
+        scan-type: image
+        image-ref: task-service:test
+        severity: HIGH,CRITICAL
+        exit-code: "1"

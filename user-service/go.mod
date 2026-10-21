@@ -1,6 +1,6 @@
 module github.com/Ishan-Gijavanekar/user-service
 
-go 1.26.9
+go 1.26.10
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.15

@@ -7,6 +7,78 @@ servers:
 security:
   - bearerAuth: []
 paths:
+  /workspaces:
+    post:
+      operationId: createWorkspace
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateWorkspace' } } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Workspace' } } } }, '400': { $ref: '#/components/responses/Error' } }
+  /workspaces/{workspaceId}:
+    parameters: [{ $ref: '#/components/parameters/WorkspaceId' }]
+    get:
+      operationId: getWorkspace
+      parameters: [{ name: includeArchived, in: query, schema: { type: boolean, default: false } }]
+      responses: { '200': { description: Workspace, content: { application/json: { schema: { $ref: '#/components/schemas/Workspace' } } } }, '403': { $ref: '#/components/responses/Error' } }
+    patch:
+      operationId: updateWorkspace
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name, version], properties: { name: { type: string, maxLength: 100 }, version: { type: integer, minimum: 1 } } } } } }
+      responses: { '200': { description: Updated }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: archiveWorkspace
+      parameters: [{ $ref: '#/components/parameters/Version' }]
+      responses: { '200': { description: Archived }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /workspaces/{workspaceId}/transfer:
+    post:
+      operationId: transferWorkspaceOwnership
+      parameters: [{ $ref: '#/components/parameters/WorkspaceId' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [newOwnerId, version], properties: { newOwnerId: { type: string }, version: { type: integer, minimum: 1 } } } } } }
+      responses: { '200': { description: Ownership transferred }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /workspaces/{workspaceId}/projects:
+    parameters: [{ $ref: '#/components/parameters/WorkspaceId' }]
+    post:
+      operationId: createProject
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateProject' } } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }, '409': { $ref: '#/components/responses/Error' } }
+    get:
+      operationId: listProjects
+      parameters: [{ name: includeArchived, in: query, schema: { type: boolean, default: false } }]
+      responses: { '200': { description: Projects } }
+  /workspaces/{workspaceId}/projects/{projectId}:
+    parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { name: projectId, in: path, required: true, schema: { type: string } }]
+    get: { operationId: getProject, responses: { '200': { description: Project }, '404': { $ref: '#/components/responses/Error' } } }
+    patch:
+      operationId: updateProject
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateProject' } } } }
+      responses: { '200': { description: Updated }, '409': { $ref: '#/components/responses/Error' } }
+    delete: { operationId: archiveProject, parameters: [{ $ref: '#/components/parameters/Version' }], responses: { '200': { description: Archived } } }
+  /workspaces/{workspaceId}/invitations:
+    post:
+      operationId: inviteWorkspaceMember
+      parameters: [{ $ref: '#/components/parameters/WorkspaceId' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, role], properties: { email: { type: string, format: email }, role: { $ref: '#/components/schemas/AssignableRole' } } } } } }
+      responses: { '201': { description: Invitation and one-time raw token }, '429': { $ref: '#/components/responses/Error' } }
+  /workspaces/{workspaceId}/invitations/{invitationId}/resend:
+    post: { operationId: resendInvitation, parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { $ref: '#/components/parameters/InvitationId' }], responses: { '200': { description: Reissued invitation and token }, '409': { $ref: '#/components/responses/Error' } } }
+  /workspaces/{workspaceId}/invitations/{invitationId}:
+    delete: { operationId: revokeInvitation, parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { $ref: '#/components/parameters/InvitationId' }], responses: { '204': { description: Revoked }, '409': { $ref: '#/components/responses/Error' } } }
+  /invitations/accept:
+    post:
+      operationId: acceptInvitation
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses: { '200': { description: Membership created }, '409': { $ref: '#/components/responses/Error' }, '410': { $ref: '#/components/responses/Error' } }
+  /workspaces/{workspaceId}/members:
+    get: { operationId: listWorkspaceMembers, parameters: [{ $ref: '#/components/parameters/WorkspaceId' }], responses: { '200': { description: Members } } }
+  /workspaces/{workspaceId}/members/{userId}:
+    parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { name: userId, in: path, required: true, schema: { type: string } }]
+    patch:
+      operationId: updateWorkspaceMember
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [role, status], properties: { role: { $ref: '#/components/schemas/AssignableRole' }, status: { type: string, enum: [active, suspended] } } } } } }
+      responses: { '200': { description: Updated }, '403': { $ref: '#/components/responses/Error' } }
+    delete: { operationId: removeWorkspaceMember, responses: { '204': { description: Removed; task attribution is preserved }, '403': { $ref: '#/components/responses/Error' } } }
+  /workspaces/{workspaceId}/audit-events:
+    get:
+      operationId: listWorkspaceAuditEvents
+      parameters: [{ $ref: '#/components/parameters/WorkspaceId' }, { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }]
+      responses: { '200': { description: Immutable administrative audit events }, '403': { $ref: '#/components/responses/Error' } }
   /workspaces/{workspaceId}/tasks:
     parameters:
       - $ref: '#/components/parameters/WorkspaceId'
@@ -55,9 +127,30 @@ components:
   parameters:
     WorkspaceId: { name: workspaceId, in: path, required: true, schema: { type: string } }
     IdempotencyKey: { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 200 } }
+    Version: { name: version, in: query, required: true, schema: { type: integer, minimum: 1 } }
+    InvitationId: { name: invitationId, in: path, required: true, schema: { type: string } }
   responses:
     Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   schemas:
+    Workspace:
+      type: object
+      required: [id, name, ownerId, version, createdAt, updatedAt]
+      properties: { id: { type: string }, name: { type: string }, ownerId: { type: string }, version: { type: integer }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time }, archivedAt: { type: [string, 'null'], format: date-time } }
+    CreateWorkspace: { type: object, required: [name], properties: { name: { type: string, minLength: 1, maxLength: 100 } } }
+    WorkflowStatus: { type: object, required: [key, name], properties: { key: { type: string, maxLength: 50 }, name: { type: string, maxLength: 100 } } }
+    Project:
+      type: object
+      required: [id, workspaceId, name, key, workflow, visibility, version, createdAt, updatedAt]
+      properties: { id: { type: string }, workspaceId: { type: string }, name: { type: string }, key: { type: string }, description: { type: string }, workflow: { type: array, items: { $ref: '#/components/schemas/WorkflowStatus' } }, visibility: { type: string, enum: [workspace, private] }, version: { type: integer }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time }, archivedAt: { type: [string, 'null'], format: date-time } }
+    CreateProject:
+      type: object
+      required: [name, key]
+      properties: { name: { type: string, maxLength: 100 }, key: { type: string, pattern: '^[A-Z][A-Z0-9]{1,9}$' }, description: { type: string, maxLength: 2000 }, workflow: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/WorkflowStatus' } }, visibility: { type: string, enum: [workspace, private], default: workspace } }
+    UpdateProject:
+      type: object
+      required: [name, version]
+      properties: { name: { type: string, maxLength: 100 }, description: { type: string, maxLength: 2000 }, workflow: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/WorkflowStatus' } }, visibility: { type: string, enum: [workspace, private] }, version: { type: integer, minimum: 1 } }
+    AssignableRole: { type: string, enum: [admin, member, viewer] }
     Task:
       type: object
       required: [id, workspaceId, projectId, title, status, priority, reporterId, position, version, createdAt, updatedAt]

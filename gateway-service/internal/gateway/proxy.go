@@ -36,6 +36,30 @@ type Proxy struct {
 	responseLimit    int64
 }
 
+func (p *Proxy) Ready(ctx context.Context) error {
+	checks := []struct {
+		base *url.URL
+		path string
+	}{{p.userURL, "/health/ready"}, {p.taskURL, "/readyz"}}
+	for _, check := range checks {
+		target := *check.base
+		target.Path = strings.TrimRight(check.base.Path, "/") + check.path
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, target.String(), nil)
+		if err != nil {
+			return err
+		}
+		response, err := p.client.Do(request)
+		if err != nil {
+			return ErrUpstreamUnavailable
+		}
+		_ = response.Body.Close()
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			return ErrUpstreamUnavailable
+		}
+	}
+	return nil
+}
+
 func NewProxy(client *http.Client, userURL, taskURL *url.URL, timeout time.Duration, responseLimit int64) (*Proxy, error) {
 	if client == nil || userURL == nil || taskURL == nil || timeout <= 0 || responseLimit <= 0 {
 		return nil, fmt.Errorf("client, upstream URLs, timeout, and response limit are required")

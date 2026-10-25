@@ -196,6 +196,10 @@ func mapped(e error) error {
 		code = codes.NotFound
 	case errors.Is(e, domain.ErrConflict), errors.Is(e, domain.ErrIdempotencyConflict):
 		code = codes.Aborted
+	case errors.Is(e, domain.ErrInvitationExpired):
+		code = codes.FailedPrecondition
+	case errors.Is(e, domain.ErrRateLimited):
+		code = codes.ResourceExhausted
 	}
 	message := e.Error()
 	if code == codes.Internal {

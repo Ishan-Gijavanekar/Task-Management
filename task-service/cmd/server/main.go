@@ -59,9 +59,15 @@ func main() {
 		logger.Error("indexes failed", "error", e)
 		os.Exit(1)
 	}
-	svc, e := service.New(repo, service.StaticIdentityValidator{})
+	authorizer := service.NewAuthorizer(repo, 30*time.Second)
+	svc, e := service.NewWithAuthorizer(repo, service.StaticIdentityValidator{}, authorizer)
 	if e != nil {
 		logger.Error("service failed", "error", e)
+		os.Exit(1)
+	}
+	adminService, e := service.NewAdministration(repo, service.StaticIdentityValidator{}, authorizer)
+	if e != nil {
+		logger.Error("administration service failed", "error", e)
 		os.Exit(1)
 	}
 	jwt := auth.New(cfg.JWTKeys, cfg.JWTIssuer)
@@ -78,9 +84,10 @@ func main() {
 	})
 	app.Get("/metrics", observability.Metrics)
 	api := app.Group("/api/v1", jwt.Fiber())
-	httptransport.NewHandler(svc).Register(api)
+	httptransport.NewHandler(svc, adminService).Register(api)
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(observability.Unary(logger, cfg.ConcurrencyLimit), jwt.Unary()))
 	taskv1.RegisterTaskServiceServer(grpcServer, grpctransport.NewHandler(svc))
+	taskv1.RegisterWorkspaceServiceServer(grpcServer, grpctransport.NewAdministrationHandler(adminService))
 	listener, e := net.Listen("tcp", ":"+cfg.GRPCPort)
 	if e != nil {
 		logger.Error("grpc listen failed", "error", e)

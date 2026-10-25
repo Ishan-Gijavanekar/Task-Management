@@ -11,10 +11,22 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type Handler struct{ service *service.Service }
+type Handler struct {
+	service *service.Service
+	admin   *service.AdministrationService
+}
 
-func NewHandler(s *service.Service) *Handler { return &Handler{service: s} }
+func NewHandler(s *service.Service, admin ...*service.AdministrationService) *Handler {
+	h := &Handler{service: s}
+	if len(admin) > 0 {
+		h.admin = admin[0]
+	}
+	return h
+}
 func (h *Handler) Register(r fiber.Router) {
+	if h.admin != nil {
+		h.registerAdministration(r)
+	}
 	r.Post("/workspaces/:workspaceId/tasks", h.create)
 	r.Get("/workspaces/:workspaceId/tasks", h.list)
 	r.Get("/workspaces/:workspaceId/tasks/:id", h.get)
@@ -158,6 +170,10 @@ func fail(c *fiber.Ctx, e error) error {
 		status, code = 404, "not_found"
 	case errors.Is(e, domain.ErrConflict), errors.Is(e, domain.ErrIdempotencyConflict):
 		status, code = 409, "conflict"
+	case errors.Is(e, domain.ErrInvitationExpired):
+		status, code = 410, "invitation_expired"
+	case errors.Is(e, domain.ErrRateLimited):
+		status, code = 429, "rate_limited"
 	}
 	message := e.Error()
 	if status == 500 {

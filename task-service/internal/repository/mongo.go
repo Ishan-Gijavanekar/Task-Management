@@ -19,13 +19,22 @@ type MongoRepository struct {
 	activities  *mongo.Collection
 	idempotency *mongo.Collection
 	memberships *mongo.Collection
+	workspaces  *mongo.Collection
+	projects    *mongo.Collection
+	invitations *mongo.Collection
+	auditEvents *mongo.Collection
 }
 
 func NewMongoRepository(db *mongo.Database) (*MongoRepository, error) {
 	if db == nil {
 		return nil, fmt.Errorf("mongo database is required")
 	}
-	return &MongoRepository{db: db, tasks: db.Collection("tasks"), activities: db.Collection("task_activities"), idempotency: db.Collection("task_idempotency"), memberships: db.Collection("workspace_memberships")}, nil
+	return &MongoRepository{
+		db: db, tasks: db.Collection("tasks"), activities: db.Collection("task_activities"),
+		idempotency: db.Collection("task_idempotency"), memberships: db.Collection("workspace_memberships"),
+		workspaces: db.Collection("workspaces"), projects: db.Collection("projects"),
+		invitations: db.Collection("workspace_invitations"), auditEvents: db.Collection("workspace_audit_events"),
+	}, nil
 }
 
 func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
@@ -45,6 +54,22 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 	}
 	if _, err := r.memberships.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}); err != nil {
 		return fmt.Errorf("create membership index: %w", err)
+	}
+	if _, err := r.projects.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "key", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "archivedAt", Value: 1}, {Key: "name", Value: 1}}},
+	}); err != nil {
+		return fmt.Errorf("create project indexes: %w", err)
+	}
+	if _, err := r.invitations.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "tokenHash", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "email", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(86400)},
+	}); err != nil {
+		return fmt.Errorf("create invitation indexes: %w", err)
+	}
+	if _, err := r.auditEvents.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "createdAt", Value: -1}, {Key: "_id", Value: -1}}}); err != nil {
+		return fmt.Errorf("create audit index: %w", err)
 	}
 	_, err := r.idempotency.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "actorId", Value: 1}, {Key: "key", Value: 1}}, Options: options.Index().SetUnique(true)},
@@ -226,12 +251,12 @@ func (r *MongoRepository) findIdempotency(ctx context.Context, workspaceID primi
 	return &record, nil
 }
 
-func (r *MongoRepository) IsMember(ctx context.Context, workspaceID primitive.ObjectID, userID string) (bool, error) {
-	err := r.memberships.FindOne(ctx, bson.M{"workspaceId": workspaceID, "userId": userID}).Err()
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return false, nil
+func (r *MongoRepository) GetMembership(ctx context.Context, workspaceID primitive.ObjectID, userID string) (*domain.Membership, error) {
+	var membership domain.Membership
+	if err := r.memberships.FindOne(ctx, bson.M{"workspaceId": workspaceID, "userId": userID}).Decode(&membership); err != nil {
+		return nil, mapMongoError(err)
 	}
-	return err == nil, err
+	return &membership, nil
 }
 
 func (r *MongoRepository) DependencyPathExists(ctx context.Context, workspaceID, from, target primitive.ObjectID) (bool, error) {

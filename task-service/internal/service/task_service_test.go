@@ -101,8 +101,11 @@ func (m *memoryRepo) FindIdempotency(_ context.Context, _ primitive.ObjectID, _,
 	}
 	return r, nil
 }
-func (m *memoryRepo) IsMember(_ context.Context, w primitive.ObjectID, a string) (bool, error) {
-	return m.members[w.Hex()+a], nil
+func (m *memoryRepo) GetMembership(_ context.Context, w primitive.ObjectID, a string) (*domain.Membership, error) {
+	if !m.members[w.Hex()+a] {
+		return nil, domain.ErrNotFound
+	}
+	return &domain.Membership{WorkspaceID: w, UserID: a, Role: domain.RoleMember, Status: domain.MembershipActive}, nil
 }
 func (m *memoryRepo) DependencyPathExists(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (bool, error) {
 	return false, nil

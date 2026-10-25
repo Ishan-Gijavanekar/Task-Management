@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Ishan-Gijavanekar/task-service/internal/domain"
+	"github.com/Ishan-Gijavanekar/task-service/internal/policy"
 	"github.com/Ishan-Gijavanekar/task-service/internal/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -414,11 +416,11 @@ func (s *Service) authorize(ctx context.Context, wid primitive.ObjectID, actor s
 	if e := s.identities.Validate(ctx, actor); e != nil {
 		return e
 	}
-	ok, e := s.repo.IsMember(ctx, wid, actor)
-	if e != nil {
+	membership, e := s.repo.GetMembership(ctx, wid, actor)
+	if e != nil && !errors.Is(e, domain.ErrNotFound) {
 		return e
 	}
-	if !ok {
+	if !policy.Allows(membership, policy.TaskWrite) {
 		return domain.ErrForbidden
 	}
 	return nil

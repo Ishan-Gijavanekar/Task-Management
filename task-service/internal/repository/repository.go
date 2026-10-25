@@ -50,7 +50,27 @@ type TaskRepository interface {
 	Get(context.Context, primitive.ObjectID, primitive.ObjectID, bool) (*domain.Task, error)
 	List(context.Context, ListFilter) ([]*domain.Task, error)
 	FindIdempotency(context.Context, primitive.ObjectID, string, string) (*Idempotency, error)
-	IsMember(context.Context, primitive.ObjectID, string) (bool, error)
+	GetMembership(context.Context, primitive.ObjectID, string) (*domain.Membership, error)
 	DependencyPathExists(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (bool, error)
 	Ping(context.Context) error
+}
+
+type AdministrationRepository interface {
+	CreateWorkspace(context.Context, *domain.Workspace, *domain.Membership, *domain.AuditEvent) error
+	GetWorkspace(context.Context, primitive.ObjectID, bool) (*domain.Workspace, error)
+	UpdateWorkspace(context.Context, *domain.Workspace, int64, *domain.AuditEvent) error
+	CreateProject(context.Context, *domain.Project, *domain.AuditEvent) error
+	GetProject(context.Context, primitive.ObjectID, primitive.ObjectID, bool) (*domain.Project, error)
+	ListProjects(context.Context, primitive.ObjectID, bool) ([]*domain.Project, error)
+	UpdateProject(context.Context, *domain.Project, int64, *domain.AuditEvent) error
+	GetMembership(context.Context, primitive.ObjectID, string) (*domain.Membership, error)
+	ListMemberships(context.Context, primitive.ObjectID) ([]*domain.Membership, error)
+	UpsertMembership(context.Context, *domain.Membership, *domain.AuditEvent) error
+	RemoveMembership(context.Context, primitive.ObjectID, string, *domain.AuditEvent) error
+	CreateInvitation(context.Context, *domain.Invitation, *domain.AuditEvent) error
+	GetInvitation(context.Context, primitive.ObjectID, primitive.ObjectID) (*domain.Invitation, error)
+	GetInvitationByTokenHash(context.Context, string) (*domain.Invitation, error)
+	UpdateInvitation(context.Context, *domain.Invitation, *domain.AuditEvent) error
+	CountRecentInvitations(context.Context, primitive.ObjectID, string, time.Time) (int64, error)
+	ListAuditEvents(context.Context, primitive.ObjectID, int64) ([]*domain.AuditEvent, error)
 }

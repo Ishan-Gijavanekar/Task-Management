@@ -17,30 +17,29 @@ This structure makes it easier to grow the project into multiple services while 
 ## Architecture
 
 ```text
-Client / API Consumer
+Browser / API Consumer
         |
         v
-  Fiber HTTP API
+ API Gateway :8088
         |
-        v
-  Service Layer
-        |
-        +----------------+
-        |                |
-        v                v
- Repository Layer   gRPC Clients
-        |                |
-        v                v
-    Database       Internal Services
-                         |
-                         v
-                    gRPC Servers
+        +-------------------+
+        |                   |
+        v                   v
+ User Service         Task Service
+        |                   |
+        +---------+---------+
+                  |
+                  v
+               MongoDB
 ```
 
 ## Current Services
 
 - **user-service**: Handles user-related operations and exposes gRPC handlers backed by service and repository layers.
 - **task-service**: Handles workspace-scoped task lifecycle, filtering, ordering, idempotency, activity history, REST, and gRPC APIs.
+- **gateway-service**: Exposes the single browser API, validates authentication, normalizes errors, enforces HTTP limits, and publishes the OpenAPI contract and generated frontend types.
+
+Run the complete local stack with `docker compose up --build`. Use `http://localhost:8088/api/v1` as the public API origin and `http://localhost:8088/openapi.json` for its contract. The user and task HTTP ports remain internal to the Compose network.
 
 ## Tech Stack
 

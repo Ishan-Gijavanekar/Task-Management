@@ -67,6 +67,28 @@ func (r *MongoRepository) UpdateWorkspace(ctx context.Context, workspace *domain
 	})
 }
 
+func (r *MongoRepository) TransferOwnership(ctx context.Context, workspace *domain.Workspace, expected int64, previousOwner, nextOwner *domain.Membership, audit *domain.AuditEvent) error {
+	return r.transaction(ctx, func(tx mongo.SessionContext) error {
+		res, err := r.workspaces.ReplaceOne(tx, bson.M{"_id": workspace.ID, "version": expected, "ownerId": previousOwner.UserID}, workspace)
+		if err != nil {
+			return mapMongoError(err)
+		}
+		if res.MatchedCount == 0 {
+			return domain.ErrConflict
+		}
+		for _, member := range []*domain.Membership{previousOwner, nextOwner} {
+			res, err = r.memberships.ReplaceOne(tx, bson.M{"workspaceId": member.WorkspaceID, "userId": member.UserID}, member)
+			if err != nil {
+				return mapMongoError(err)
+			}
+			if res.MatchedCount == 0 {
+				return domain.ErrConflict
+			}
+		}
+		return insertAudit(tx, r.auditEvents, audit)
+	})
+}
+
 func (r *MongoRepository) CreateProject(ctx context.Context, project *domain.Project, audit *domain.AuditEvent) error {
 	return r.transaction(ctx, func(tx mongo.SessionContext) error {
 		if _, err := r.projects.InsertOne(tx, project); err != nil {
@@ -187,6 +209,24 @@ func (r *MongoRepository) UpdateInvitation(ctx context.Context, invitation *doma
 		}
 		if res.MatchedCount == 0 {
 			return domain.ErrConflict
+		}
+		return insertAudit(tx, r.auditEvents, audit)
+	})
+}
+
+func (r *MongoRepository) AcceptInvitation(ctx context.Context, invitation *domain.Invitation, member *domain.Membership, audit *domain.AuditEvent) error {
+	return r.transaction(ctx, func(tx mongo.SessionContext) error {
+		acceptedAt := *invitation.AcceptedAt
+		res, err := r.invitations.ReplaceOne(tx, bson.M{"_id": invitation.ID, "workspaceId": invitation.WorkspaceID, "acceptedAt": bson.M{"$exists": false}, "revokedAt": bson.M{"$exists": false}, "expiresAt": bson.M{"$gt": acceptedAt}}, invitation)
+		if err != nil {
+			return mapMongoError(err)
+		}
+		if res.MatchedCount == 0 {
+			return domain.ErrConflict
+		}
+		_, err = r.memberships.ReplaceOne(tx, bson.M{"workspaceId": member.WorkspaceID, "userId": member.UserID}, member, options.Replace().SetUpsert(true))
+		if err != nil {
+			return mapMongoError(err)
 		}
 		return insertAudit(tx, r.auditEvents, audit)
 	})

@@ -59,6 +59,7 @@ type AdministrationRepository interface {
 	CreateWorkspace(context.Context, *domain.Workspace, *domain.Membership, *domain.AuditEvent) error
 	GetWorkspace(context.Context, primitive.ObjectID, bool) (*domain.Workspace, error)
 	UpdateWorkspace(context.Context, *domain.Workspace, int64, *domain.AuditEvent) error
+	TransferOwnership(context.Context, *domain.Workspace, int64, *domain.Membership, *domain.Membership, *domain.AuditEvent) error
 	CreateProject(context.Context, *domain.Project, *domain.AuditEvent) error
 	GetProject(context.Context, primitive.ObjectID, primitive.ObjectID, bool) (*domain.Project, error)
 	ListProjects(context.Context, primitive.ObjectID, bool) ([]*domain.Project, error)
@@ -71,6 +72,7 @@ type AdministrationRepository interface {
 	GetInvitation(context.Context, primitive.ObjectID, primitive.ObjectID) (*domain.Invitation, error)
 	GetInvitationByTokenHash(context.Context, string) (*domain.Invitation, error)
 	UpdateInvitation(context.Context, *domain.Invitation, *domain.AuditEvent) error
+	AcceptInvitation(context.Context, *domain.Invitation, *domain.Membership, *domain.AuditEvent) error
 	CountRecentInvitations(context.Context, primitive.ObjectID, string, time.Time) (int64, error)
 	ListAuditEvents(context.Context, primitive.ObjectID, int64) ([]*domain.AuditEvent, error)
 }

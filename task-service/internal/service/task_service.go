@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -32,6 +31,7 @@ func (StaticIdentityValidator) Validate(_ context.Context, id string) error {
 type Service struct {
 	repo       repository.TaskRepository
 	identities IdentityValidator
+	authorizer *Authorizer
 	now        func() time.Time
 }
 
@@ -39,7 +39,14 @@ func New(repo repository.TaskRepository, identities IdentityValidator) (*Service
 	if repo == nil || identities == nil {
 		return nil, fmt.Errorf("repository and identity validator are required")
 	}
-	return &Service{repo: repo, identities: identities, now: time.Now}, nil
+	return NewWithAuthorizer(repo, identities, NewAuthorizer(repo, 30*time.Second))
+}
+
+func NewWithAuthorizer(repo repository.TaskRepository, identities IdentityValidator, authorizer *Authorizer) (*Service, error) {
+	if repo == nil || identities == nil || authorizer == nil {
+		return nil, fmt.Errorf("repository, identity validator, and authorizer are required")
+	}
+	return &Service{repo: repo, identities: identities, authorizer: authorizer, now: time.Now}, nil
 }
 
 type CreateInput struct {
@@ -93,7 +100,7 @@ func (s *Service) Create(ctx context.Context, actor string, in CreateInput) (*do
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskWrite); e != nil {
 		return nil, e
 	}
 	title := strings.TrimSpace(in.Title)
@@ -140,7 +147,7 @@ func (s *Service) Get(ctx context.Context, actor, workspace, id string, deleted 
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskRead); e != nil {
 		return nil, e
 	}
 	return s.repo.Get(ctx, wid, tid, deleted)
@@ -154,7 +161,7 @@ func (s *Service) Update(ctx context.Context, actor string, in UpdateInput) (*do
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskWrite); e != nil {
 		return nil, e
 	}
 	h := hash(in)
@@ -229,7 +236,7 @@ func (s *Service) deleted(ctx context.Context, actor, w, id string, v int64, key
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskWrite); e != nil {
 		return nil, e
 	}
 	h := hash([]any{id, v, del})
@@ -267,7 +274,7 @@ func (s *Service) Reorder(ctx context.Context, actor, w, id string, v int64, bef
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskWrite); e != nil {
 		return nil, e
 	}
 	h := hash([]any{id, v, before, after})
@@ -292,7 +299,7 @@ func (s *Service) List(ctx context.Context, actor string, in ListInput) (*ListRe
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskRead); e != nil {
 		return nil, e
 	}
 	for _, status := range in.Statuses {
@@ -353,7 +360,7 @@ func (s *Service) BatchUpdate(ctx context.Context, actor, w, key string, items [
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor); e != nil {
+	if e = s.authorize(ctx, wid, actor, policy.TaskWrite); e != nil {
 		return nil, e
 	}
 	if len(items) == 0 || len(items) > 100 {
@@ -412,18 +419,12 @@ func (s *Service) BatchUpdate(ctx context.Context, actor, w, key string, items [
 	return s.repo.ApplyBatch(ctx, ms)
 }
 
-func (s *Service) authorize(ctx context.Context, wid primitive.ObjectID, actor string) error {
+func (s *Service) authorize(ctx context.Context, wid primitive.ObjectID, actor string, action policy.Action) error {
 	if e := s.identities.Validate(ctx, actor); e != nil {
 		return e
 	}
-	membership, e := s.repo.GetMembership(ctx, wid, actor)
-	if e != nil && !errors.Is(e, domain.ErrNotFound) {
-		return e
-	}
-	if !policy.Allows(membership, policy.TaskWrite) {
-		return domain.ErrForbidden
-	}
-	return nil
+	_, e := s.authorizer.Require(ctx, wid, actor, action)
+	return e
 }
 func (s *Service) replay(ctx context.Context, wid primitive.ObjectID, actor, key, h string) (*domain.Task, error) {
 	if key == "" {

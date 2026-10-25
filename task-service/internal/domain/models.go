@@ -81,6 +81,7 @@ type Invitation struct {
 	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
 	Email       string             `json:"email" bson:"email"`
 	Role        WorkspaceRole      `json:"role" bson:"role"`
+	Version     int64              `json:"version" bson:"version"`
 	TokenHash   string             `json:"-" bson:"tokenHash"`
 	InvitedBy   string             `json:"invitedBy" bson:"invitedBy"`
 	ExpiresAt   time.Time          `json:"expiresAt" bson:"expiresAt"`

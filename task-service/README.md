@@ -10,6 +10,6 @@ Authorization is enforced inside services and documented in [docs/authorization.
 
 List endpoints use opaque cursors and stable `(position, _id)` ordering. Mutations accept `Idempotency-Key`; updates, archive, restore, reorder, and batches also require the current `version`. A stale version returns HTTP 409 or gRPC `ABORTED`.
 
-The service creates its indexes at startup. Phase 11 adds `workspaces`, `projects`, `workspace_invitations`, and `workspace_audit_events`, and expands `workspace_memberships` with status and timestamps. Existing memberships must be backfilled with `status: "active"`, `createdAt`, and `updatedAt` before enabling the Phase 11 binary. Production deployments should create the committed indexes in a deployment job before raising traffic.
+The service creates its indexes at startup. Phase 11 adds `workspaces`, `projects`, `workspace_invitations`, `workspace_audit_events`, and `workspace_rate_limits`, and expands `workspace_memberships` with status and timestamps. Existing memberships must be backfilled with `status: "active"`, `createdAt`, and `updatedAt` before enabling the Phase 11 binary. Production deployments should create the committed indexes in a deployment job before raising traffic.
 
 Rollback is schema-safe: the Phase 10 binary ignores the new collections and added membership fields. Do not delete Phase 11 data during rollback. Ownership, membership, and invitation mutations made while Phase 11 was active remain authoritative when it is redeployed.

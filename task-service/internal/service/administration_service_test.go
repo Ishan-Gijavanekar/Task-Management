@@ -15,11 +15,12 @@ type memoryAdministration struct {
 	projects    map[primitive.ObjectID]*domain.Project
 	members     map[string]*domain.Membership
 	invitations map[primitive.ObjectID]*domain.Invitation
+	quotas      map[string]int64
 	audits      []*domain.AuditEvent
 }
 
 func newMemoryAdministration() *memoryAdministration {
-	return &memoryAdministration{workspaces: map[primitive.ObjectID]*domain.Workspace{}, projects: map[primitive.ObjectID]*domain.Project{}, members: map[string]*domain.Membership{}, invitations: map[primitive.ObjectID]*domain.Invitation{}}
+	return &memoryAdministration{workspaces: map[primitive.ObjectID]*domain.Workspace{}, projects: map[primitive.ObjectID]*domain.Project{}, members: map[string]*domain.Membership{}, invitations: map[primitive.ObjectID]*domain.Invitation{}, quotas: map[string]int64{}}
 }
 func memberKey(w primitive.ObjectID, user string) string { return w.Hex() + ":" + user }
 func (m *memoryAdministration) CreateWorkspace(_ context.Context, w *domain.Workspace, member *domain.Membership, audit *domain.AuditEvent) error {
@@ -154,9 +155,9 @@ func (m *memoryAdministration) GetInvitationByTokenHash(_ context.Context, h str
 	}
 	return nil, domain.ErrNotFound
 }
-func (m *memoryAdministration) UpdateInvitation(_ context.Context, i *domain.Invitation, a *domain.AuditEvent) error {
+func (m *memoryAdministration) UpdateInvitation(_ context.Context, i *domain.Invitation, version int64, a *domain.AuditEvent) error {
 	old := m.invitations[i.ID]
-	if old == nil || old.AcceptedAt != nil || old.RevokedAt != nil {
+	if old == nil || old.Version != version || old.AcceptedAt != nil || old.RevokedAt != nil {
 		return domain.ErrConflict
 	}
 	c := *i
@@ -164,9 +165,9 @@ func (m *memoryAdministration) UpdateInvitation(_ context.Context, i *domain.Inv
 	m.audits = append(m.audits, a)
 	return nil
 }
-func (m *memoryAdministration) AcceptInvitation(_ context.Context, i *domain.Invitation, x *domain.Membership, a *domain.AuditEvent) error {
+func (m *memoryAdministration) AcceptInvitation(_ context.Context, i *domain.Invitation, version int64, x *domain.Membership, a *domain.AuditEvent) error {
 	old := m.invitations[i.ID]
-	if old == nil || old.AcceptedAt != nil || old.RevokedAt != nil {
+	if old == nil || old.Version != version || old.AcceptedAt != nil || old.RevokedAt != nil {
 		return domain.ErrConflict
 	}
 	m.invitations[i.ID] = i
@@ -174,14 +175,13 @@ func (m *memoryAdministration) AcceptInvitation(_ context.Context, i *domain.Inv
 	m.audits = append(m.audits, a)
 	return nil
 }
-func (m *memoryAdministration) CountRecentInvitations(_ context.Context, w primitive.ObjectID, a string, since time.Time) (int64, error) {
-	var n int64
-	for _, i := range m.invitations {
-		if i.WorkspaceID == w && i.InvitedBy == a && !i.CreatedAt.Before(since) {
-			n++
-		}
+func (m *memoryAdministration) ConsumeInvitationQuota(_ context.Context, w primitive.ObjectID, a string, bucket time.Time, limit int64) error {
+	key := w.Hex() + a + bucket.Format(time.RFC3339)
+	m.quotas[key]++
+	if m.quotas[key] > limit {
+		return domain.ErrRateLimited
 	}
-	return n, nil
+	return nil
 }
 func (m *memoryAdministration) ListAuditEvents(_ context.Context, w primitive.ObjectID, limit int64) ([]*domain.AuditEvent, error) {
 	var out []*domain.AuditEvent
@@ -278,6 +278,22 @@ func TestInvitationAcceptIsSingleUseAndInvalidatesMembershipCache(t *testing.T) 
 	}
 	if _, err = authz.Membership(ctx, w.ID, "new-user"); err != nil {
 		t.Fatalf("accepted membership unavailable: %v", err)
+	}
+}
+
+func TestInvitationCannotReplaceExistingMembership(t *testing.T) {
+	s, repo, _ := setupAdministration(t)
+	ctx := context.Background()
+	w, _ := s.CreateWorkspace(ctx, "owner", CreateWorkspaceInput{Name: "Team"})
+	result, err := s.Invite(ctx, "owner", w.ID.Hex(), InviteInput{Email: "owner@example.com", Role: domain.RoleViewer})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.AcceptInvitation(ctx, "owner", result.Token); !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("existing owner membership was replaceable: %v", err)
+	}
+	if repo.members[memberKey(w.ID, "owner")].Role != domain.RoleOwner {
+		t.Fatal("owner role changed")
 	}
 }
 

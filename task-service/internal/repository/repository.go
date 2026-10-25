@@ -75,8 +75,8 @@ type AdministrationRepository interface {
 	CreateInvitation(context.Context, *domain.Invitation, *domain.AuditEvent) error
 	GetInvitation(context.Context, primitive.ObjectID, primitive.ObjectID) (*domain.Invitation, error)
 	GetInvitationByTokenHash(context.Context, string) (*domain.Invitation, error)
-	UpdateInvitation(context.Context, *domain.Invitation, *domain.AuditEvent) error
-	AcceptInvitation(context.Context, *domain.Invitation, *domain.Membership, *domain.AuditEvent) error
-	CountRecentInvitations(context.Context, primitive.ObjectID, string, time.Time) (int64, error)
+	UpdateInvitation(context.Context, *domain.Invitation, int64, *domain.AuditEvent) error
+	AcceptInvitation(context.Context, *domain.Invitation, int64, *domain.Membership, *domain.AuditEvent) error
+	ConsumeInvitationQuota(context.Context, primitive.ObjectID, string, time.Time, int64) error
 	ListAuditEvents(context.Context, primitive.ObjectID, int64) ([]*domain.AuditEvent, error)
 }

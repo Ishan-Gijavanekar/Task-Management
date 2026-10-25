@@ -201,9 +201,9 @@ func (r *MongoRepository) GetInvitationByTokenHash(ctx context.Context, hash str
 	return &invitation, nil
 }
 
-func (r *MongoRepository) UpdateInvitation(ctx context.Context, invitation *domain.Invitation, audit *domain.AuditEvent) error {
+func (r *MongoRepository) UpdateInvitation(ctx context.Context, invitation *domain.Invitation, expectedVersion int64, audit *domain.AuditEvent) error {
 	return r.transaction(ctx, func(tx mongo.SessionContext) error {
-		res, err := r.invitations.ReplaceOne(tx, bson.M{"_id": invitation.ID, "workspaceId": invitation.WorkspaceID, "acceptedAt": bson.M{"$exists": false}, "revokedAt": bson.M{"$exists": false}}, invitation)
+		res, err := r.invitations.ReplaceOne(tx, bson.M{"_id": invitation.ID, "workspaceId": invitation.WorkspaceID, "version": expectedVersion, "acceptedAt": bson.M{"$exists": false}, "revokedAt": bson.M{"$exists": false}}, invitation)
 		if err != nil {
 			return mapMongoError(err)
 		}
@@ -214,10 +214,10 @@ func (r *MongoRepository) UpdateInvitation(ctx context.Context, invitation *doma
 	})
 }
 
-func (r *MongoRepository) AcceptInvitation(ctx context.Context, invitation *domain.Invitation, member *domain.Membership, audit *domain.AuditEvent) error {
+func (r *MongoRepository) AcceptInvitation(ctx context.Context, invitation *domain.Invitation, expectedVersion int64, member *domain.Membership, audit *domain.AuditEvent) error {
 	return r.transaction(ctx, func(tx mongo.SessionContext) error {
 		acceptedAt := *invitation.AcceptedAt
-		res, err := r.invitations.ReplaceOne(tx, bson.M{"_id": invitation.ID, "workspaceId": invitation.WorkspaceID, "acceptedAt": bson.M{"$exists": false}, "revokedAt": bson.M{"$exists": false}, "expiresAt": bson.M{"$gt": acceptedAt}}, invitation)
+		res, err := r.invitations.ReplaceOne(tx, bson.M{"_id": invitation.ID, "workspaceId": invitation.WorkspaceID, "version": expectedVersion, "acceptedAt": bson.M{"$exists": false}, "revokedAt": bson.M{"$exists": false}, "expiresAt": bson.M{"$gt": acceptedAt}}, invitation)
 		if err != nil {
 			return mapMongoError(err)
 		}
@@ -232,8 +232,19 @@ func (r *MongoRepository) AcceptInvitation(ctx context.Context, invitation *doma
 	})
 }
 
-func (r *MongoRepository) CountRecentInvitations(ctx context.Context, workspaceID primitive.ObjectID, actorID string, since time.Time) (int64, error) {
-	return r.auditEvents.CountDocuments(ctx, bson.M{"workspaceId": workspaceID, "actorId": actorID, "action": bson.M{"$in": []string{"invitation.created", "invitation.resent"}}, "createdAt": bson.M{"$gte": since}})
+func (r *MongoRepository) ConsumeInvitationQuota(ctx context.Context, workspaceID primitive.ObjectID, actorID string, bucket time.Time, limit int64) error {
+	id := workspaceID.Hex() + ":" + actorID + ":" + bucket.UTC().Format("2006010215")
+	var result struct {
+		Count int64 `bson:"count"`
+	}
+	err := r.rateLimits.FindOneAndUpdate(ctx, bson.M{"_id": id}, bson.M{"$inc": bson.M{"count": 1}, "$setOnInsert": bson.M{"workspaceId": workspaceID, "actorId": actorID, "expiresAt": bucket.Add(2 * time.Hour)}}, options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)).Decode(&result)
+	if err != nil {
+		return mapMongoError(err)
+	}
+	if result.Count > limit {
+		return domain.ErrRateLimited
+	}
+	return nil
 }
 
 func (r *MongoRepository) ListAuditEvents(ctx context.Context, workspaceID primitive.ObjectID, limit int64) ([]*domain.AuditEvent, error) {

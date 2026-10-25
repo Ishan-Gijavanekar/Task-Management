@@ -11,7 +11,7 @@ message Workspace { string id = 1; string name = 2; string owner_id = 3; int64 v
 message WorkflowStatus { string key = 1; string name = 2; }
 message Project { string id = 1; string workspace_id = 2; string name = 3; string key = 4; string description = 5; repeated WorkflowStatus workflow = 6; string visibility = 7; int64 version = 8; google.protobuf.Timestamp created_at = 9; google.protobuf.Timestamp updated_at = 10; google.protobuf.Timestamp archived_at = 11; }
 message Membership { string id = 1; string workspace_id = 2; string user_id = 3; string role = 4; string status = 5; google.protobuf.Timestamp created_at = 6; google.protobuf.Timestamp updated_at = 7; }
-message Invitation { string id = 1; string workspace_id = 2; string email = 3; string role = 4; string invited_by = 5; google.protobuf.Timestamp expires_at = 6; google.protobuf.Timestamp created_at = 7; google.protobuf.Timestamp accepted_at = 8; string accepted_by = 9; google.protobuf.Timestamp revoked_at = 10; string revoked_by = 11; }
+message Invitation { string id = 1; string workspace_id = 2; string email = 3; string role = 4; string invited_by = 5; google.protobuf.Timestamp expires_at = 6; google.protobuf.Timestamp created_at = 7; google.protobuf.Timestamp accepted_at = 8; string accepted_by = 9; google.protobuf.Timestamp revoked_at = 10; string revoked_by = 11; int64 version = 12; }
 message AuditEvent { string id = 1; string workspace_id = 2; string actor_id = 3; string action = 4; string resource = 5; string resource_id = 6; google.protobuf.Struct details = 7; google.protobuf.Timestamp created_at = 8; }
 
 message CreateWorkspaceRequest { string name = 1; }

@@ -343,12 +343,8 @@ func (s *AdministrationService) Invite(ctx context.Context, actor, workspaceID s
 		return nil, domain.ErrForbidden
 	}
 	now := s.now().UTC()
-	count, err := s.repo.CountRecentInvitations(ctx, wid, actor, now.Add(-time.Hour))
-	if err != nil {
+	if err = s.repo.ConsumeInvitationQuota(ctx, wid, actor, now.Truncate(time.Hour), invitationLimitPerHour); err != nil {
 		return nil, err
-	}
-	if count >= invitationLimitPerHour {
-		return nil, domain.ErrRateLimited
 	}
 	token, tokenHash, err := invitationToken()
 	if err != nil {
@@ -361,7 +357,7 @@ func (s *AdministrationService) Invite(ctx context.Context, actor, workspaceID s
 	if ttl > 30*24*time.Hour {
 		return nil, domain.ErrInvalidArgument
 	}
-	inv := &domain.Invitation{ID: primitive.NewObjectID(), WorkspaceID: wid, Email: email, Role: in.Role, TokenHash: tokenHash, InvitedBy: actor, ExpiresAt: now.Add(ttl), CreatedAt: now}
+	inv := &domain.Invitation{ID: primitive.NewObjectID(), WorkspaceID: wid, Email: email, Role: in.Role, Version: 1, TokenHash: tokenHash, InvitedBy: actor, ExpiresAt: now.Add(ttl), CreatedAt: now}
 	if err = s.repo.CreateInvitation(ctx, inv, audit(wid, actor, "invitation.created", "invitation", inv.ID.Hex(), map[string]any{"role": in.Role}, now)); err != nil {
 		return nil, err
 	}
@@ -384,19 +380,16 @@ func (s *AdministrationService) ResendInvitation(ctx context.Context, actor, wor
 		return nil, domain.ErrConflict
 	}
 	now := s.now().UTC()
-	count, err := s.repo.CountRecentInvitations(ctx, wid, actor, now.Add(-time.Hour))
-	if err != nil {
+	if err = s.repo.ConsumeInvitationQuota(ctx, wid, actor, now.Truncate(time.Hour), invitationLimitPerHour); err != nil {
 		return nil, err
-	}
-	if count >= invitationLimitPerHour {
-		return nil, domain.ErrRateLimited
 	}
 	token, tokenHash, err := invitationToken()
 	if err != nil {
 		return nil, err
 	}
-	inv.TokenHash, inv.InvitedBy, inv.CreatedAt, inv.ExpiresAt = tokenHash, actor, now, now.Add(7*24*time.Hour)
-	if err = s.repo.UpdateInvitation(ctx, inv, audit(wid, actor, "invitation.resent", "invitation", iid.Hex(), nil, now)); err != nil {
+	expectedVersion := inv.Version
+	inv.TokenHash, inv.InvitedBy, inv.CreatedAt, inv.ExpiresAt, inv.Version = tokenHash, actor, now, now.Add(7*24*time.Hour), inv.Version+1
+	if err = s.repo.UpdateInvitation(ctx, inv, expectedVersion, audit(wid, actor, "invitation.resent", "invitation", iid.Hex(), nil, now)); err != nil {
 		return nil, err
 	}
 	return &InvitationResult{Invitation: inv, Token: token}, nil
@@ -418,8 +411,10 @@ func (s *AdministrationService) RevokeInvitation(ctx context.Context, actor, wor
 		return domain.ErrConflict
 	}
 	now := s.now().UTC()
+	expectedVersion := inv.Version
 	inv.RevokedAt, inv.RevokedBy = &now, actor
-	return s.repo.UpdateInvitation(ctx, inv, audit(wid, actor, "invitation.revoked", "invitation", iid.Hex(), nil, now))
+	inv.Version++
+	return s.repo.UpdateInvitation(ctx, inv, expectedVersion, audit(wid, actor, "invitation.revoked", "invitation", iid.Hex(), nil, now))
 }
 
 func (s *AdministrationService) AcceptInvitation(ctx context.Context, actor, token string) (*domain.Membership, error) {
@@ -443,9 +438,11 @@ func (s *AdministrationService) AcceptInvitation(ctx context.Context, actor, tok
 	} else if !errors.Is(membershipErr, domain.ErrNotFound) {
 		return nil, membershipErr
 	}
+	expectedVersion := inv.Version
 	inv.AcceptedAt, inv.AcceptedBy = &now, actor
+	inv.Version++
 	m := &domain.Membership{ID: primitive.NewObjectID(), WorkspaceID: inv.WorkspaceID, UserID: actor, Role: inv.Role, Status: domain.MembershipActive, CreatedAt: now, UpdatedAt: now}
-	if err = s.repo.AcceptInvitation(ctx, inv, m, audit(inv.WorkspaceID, actor, "invitation.accepted", "invitation", inv.ID.Hex(), nil, now)); err != nil {
+	if err = s.repo.AcceptInvitation(ctx, inv, expectedVersion, m, audit(inv.WorkspaceID, actor, "invitation.accepted", "invitation", inv.ID.Hex(), nil, now)); err != nil {
 		return nil, err
 	}
 	s.authorizer.Invalidate(inv.WorkspaceID, actor)

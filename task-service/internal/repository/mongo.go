@@ -23,6 +23,7 @@ type MongoRepository struct {
 	projects    *mongo.Collection
 	invitations *mongo.Collection
 	auditEvents *mongo.Collection
+	rateLimits  *mongo.Collection
 }
 
 func NewMongoRepository(db *mongo.Database) (*MongoRepository, error) {
@@ -34,6 +35,7 @@ func NewMongoRepository(db *mongo.Database) (*MongoRepository, error) {
 		idempotency: db.Collection("task_idempotency"), memberships: db.Collection("workspace_memberships"),
 		workspaces: db.Collection("workspaces"), projects: db.Collection("projects"),
 		invitations: db.Collection("workspace_invitations"), auditEvents: db.Collection("workspace_audit_events"),
+		rateLimits: db.Collection("workspace_rate_limits"),
 	}, nil
 }
 
@@ -70,6 +72,9 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 	}
 	if _, err := r.auditEvents.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "createdAt", Value: -1}, {Key: "_id", Value: -1}}}); err != nil {
 		return fmt.Errorf("create audit index: %w", err)
+	}
+	if _, err := r.rateLimits.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)}); err != nil {
+		return fmt.Errorf("create rate limit index: %w", err)
 	}
 	_, err := r.idempotency.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "actorId", Value: 1}, {Key: "key", Value: 1}}, Options: options.Index().SetUnique(true)},

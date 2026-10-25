@@ -251,5 +251,5 @@ func membershipProto(m *domain.Membership) *taskv1.Membership {
 	return &taskv1.Membership{Id: m.ID.Hex(), WorkspaceId: m.WorkspaceID.Hex(), UserId: m.UserID, Role: string(m.Role), Status: string(m.Status), CreatedAt: timestamppb.New(m.CreatedAt), UpdatedAt: timestamppb.New(m.UpdatedAt)}
 }
 func invitationProto(i *domain.Invitation) *taskv1.Invitation {
-	return &taskv1.Invitation{Id: i.ID.Hex(), WorkspaceId: i.WorkspaceID.Hex(), Email: i.Email, Role: string(i.Role), InvitedBy: i.InvitedBy, ExpiresAt: timestamppb.New(i.ExpiresAt), CreatedAt: timestamppb.New(i.CreatedAt), AcceptedAt: stamp(i.AcceptedAt), AcceptedBy: i.AcceptedBy, RevokedAt: stamp(i.RevokedAt), RevokedBy: i.RevokedBy}
+	return &taskv1.Invitation{Id: i.ID.Hex(), WorkspaceId: i.WorkspaceID.Hex(), Email: i.Email, Role: string(i.Role), InvitedBy: i.InvitedBy, ExpiresAt: timestamppb.New(i.ExpiresAt), CreatedAt: timestamppb.New(i.CreatedAt), AcceptedAt: stamp(i.AcceptedAt), AcceptedBy: i.AcceptedBy, RevokedAt: stamp(i.RevokedAt), RevokedBy: i.RevokedBy, Version: i.Version}
 }

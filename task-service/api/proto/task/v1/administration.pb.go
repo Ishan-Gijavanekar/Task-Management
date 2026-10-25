@@ -397,6 +397,7 @@ type Invitation struct {
 	AcceptedBy    string                 `protobuf:"bytes,9,opt,name=accepted_by,json=acceptedBy,proto3" json:"accepted_by,omitempty"`
 	RevokedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
 	RevokedBy     string                 `protobuf:"bytes,11,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
+	Version       int64                  `protobuf:"varint,12,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -506,6 +507,13 @@ func (x *Invitation) GetRevokedBy() string {
 		return x.RevokedBy
 	}
 	return ""
+}
+
+func (x *Invitation) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 type AuditEvent struct {
@@ -1959,7 +1967,7 @@ const file_api_proto_task_v1_administration_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xb6\x03\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xd0\x03\n" +
 	"\n" +
 	"Invitation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
@@ -1980,7 +1988,8 @@ const file_api_proto_task_v1_administration_proto_rawDesc = "" +
 	"revoked_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\trevokedAt\x12\x1d\n" +
 	"\n" +
-	"revoked_by\x18\v \x01(\tR\trevokedBy\"\x9d\x02\n" +
+	"revoked_by\x18\v \x01(\tR\trevokedBy\x12\x18\n" +
+	"\aversion\x18\f \x01(\x03R\aversion\"\x9d\x02\n" +
 	"\n" +
 	"AuditEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +

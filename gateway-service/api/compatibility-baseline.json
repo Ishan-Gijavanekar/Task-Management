@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "operations": ["register","login","refreshSession","logout","forgotPassword","resetPassword","verifyEmail","resendVerification","getCurrentUser","listUsers","getUser","updateUser","deleteUser","createWorkspace","getWorkspace","updateWorkspace","archiveWorkspace","transferWorkspaceOwnership","listProjects","createProject","getProject","updateProject","archiveProject","inviteWorkspaceMember","resendInvitation","revokeInvitation","acceptInvitation","listWorkspaceMembers","updateWorkspaceMember","removeWorkspaceMember","listWorkspaceAuditEvents","listTasks","createTask","getTask","updateTask","archiveTask","restoreTask","reorderTask","batchUpdateTasks"],
+  "schemas": {
+    "ErrorDetail": ["code","message","requestId"], "User": ["id","name","email","role","status","version","createdAt","updatedAt"], "AuthResponse": ["user","access_token","expires_in","token_type"], "Workspace": ["id","name","ownerId","version","createdAt","updatedAt"], "Project": ["id","workspaceId","name","key","workflow","visibility","version"], "Membership": ["workspaceId","userId","role","status"], "Invitation": ["id","workspaceId","email","role","version","expiresAt"], "Task": ["id","workspaceId","projectId","title","status","priority","reporterId","position","version","createdAt","updatedAt"]
+  },
+  "enums": {"Project.visibility": ["workspace","private"], "Membership.role": ["owner","admin","member","viewer"], "Membership.status": ["active","suspended"], "Task.status": ["backlog","todo","in_progress","blocked","done","cancelled"], "Task.priority": ["none","low","medium","high","urgent"]}
+}

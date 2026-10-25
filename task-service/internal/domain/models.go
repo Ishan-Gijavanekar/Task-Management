@@ -16,17 +16,50 @@ const (
 )
 
 type Workspace struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Name      string             `json:"name" bson:"name"`
-	OwnerID   string             `json:"ownerId" bson:"ownerId"`
-	CreatedAt time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt"`
+	ID         primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Name       string             `json:"name" bson:"name"`
+	OwnerID    string             `json:"ownerId" bson:"ownerId"`
+	Version    int64              `json:"version" bson:"version"`
+	CreatedAt  time.Time          `json:"createdAt" bson:"createdAt"`
+	UpdatedAt  time.Time          `json:"updatedAt" bson:"updatedAt"`
+	ArchivedAt *time.Time         `json:"archivedAt,omitempty" bson:"archivedAt,omitempty"`
 }
 
+type MembershipStatus string
+
+const (
+	MembershipActive    MembershipStatus = "active"
+	MembershipSuspended MembershipStatus = "suspended"
+)
+
 type Membership struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
 	UserID      string             `json:"userId" bson:"userId"`
 	Role        WorkspaceRole      `json:"role" bson:"role"`
+	Status      MembershipStatus   `json:"status" bson:"status"`
+	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
+	UpdatedAt   time.Time          `json:"updatedAt" bson:"updatedAt"`
+}
+
+func (r WorkspaceRole) Valid() bool {
+	switch r {
+	case RoleOwner, RoleAdmin, RoleMember, RoleViewer:
+		return true
+	}
+	return false
+}
+
+type ProjectVisibility string
+
+const (
+	ProjectWorkspace ProjectVisibility = "workspace"
+	ProjectPrivate   ProjectVisibility = "private"
+)
+
+type WorkflowStatus struct {
+	Key  string `json:"key" bson:"key"`
+	Name string `json:"name" bson:"name"`
 }
 
 type Project struct {
@@ -35,9 +68,38 @@ type Project struct {
 	Name        string             `json:"name" bson:"name"`
 	Key         string             `json:"key" bson:"key"`
 	Description string             `json:"description,omitempty" bson:"description,omitempty"`
+	Workflow    []WorkflowStatus   `json:"workflow" bson:"workflow"`
+	Visibility  ProjectVisibility  `json:"visibility" bson:"visibility"`
+	Version     int64              `json:"version" bson:"version"`
 	ArchivedAt  *time.Time         `json:"archivedAt,omitempty" bson:"archivedAt,omitempty"`
 	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
 	UpdatedAt   time.Time          `json:"updatedAt" bson:"updatedAt"`
+}
+
+type Invitation struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
+	Email       string             `json:"email" bson:"email"`
+	Role        WorkspaceRole      `json:"role" bson:"role"`
+	TokenHash   string             `json:"-" bson:"tokenHash"`
+	InvitedBy   string             `json:"invitedBy" bson:"invitedBy"`
+	ExpiresAt   time.Time          `json:"expiresAt" bson:"expiresAt"`
+	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
+	AcceptedAt  *time.Time         `json:"acceptedAt,omitempty" bson:"acceptedAt,omitempty"`
+	AcceptedBy  string             `json:"acceptedBy,omitempty" bson:"acceptedBy,omitempty"`
+	RevokedAt   *time.Time         `json:"revokedAt,omitempty" bson:"revokedAt,omitempty"`
+	RevokedBy   string             `json:"revokedBy,omitempty" bson:"revokedBy,omitempty"`
+}
+
+type AuditEvent struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
+	ActorID     string             `json:"actorId" bson:"actorId"`
+	Action      string             `json:"action" bson:"action"`
+	Resource    string             `json:"resource" bson:"resource"`
+	ResourceID  string             `json:"resourceId" bson:"resourceId"`
+	Details     map[string]any     `json:"details,omitempty" bson:"details,omitempty"`
+	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
 }
 
 type Label struct {

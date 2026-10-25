@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package task.v1;
+option go_package = "github.com/Ishan-Gijavanekar/task-service/api/proto/task/v1;taskv1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+message Workspace { string id = 1; string name = 2; string owner_id = 3; int64 version = 4; google.protobuf.Timestamp created_at = 5; google.protobuf.Timestamp updated_at = 6; google.protobuf.Timestamp archived_at = 7; }
+message WorkflowStatus { string key = 1; string name = 2; }
+message Project { string id = 1; string workspace_id = 2; string name = 3; string key = 4; string description = 5; repeated WorkflowStatus workflow = 6; string visibility = 7; int64 version = 8; google.protobuf.Timestamp created_at = 9; google.protobuf.Timestamp updated_at = 10; google.protobuf.Timestamp archived_at = 11; }
+message Membership { string id = 1; string workspace_id = 2; string user_id = 3; string role = 4; string status = 5; google.protobuf.Timestamp created_at = 6; google.protobuf.Timestamp updated_at = 7; }
+message Invitation { string id = 1; string workspace_id = 2; string email = 3; string role = 4; string invited_by = 5; google.protobuf.Timestamp expires_at = 6; google.protobuf.Timestamp created_at = 7; google.protobuf.Timestamp accepted_at = 8; string accepted_by = 9; google.protobuf.Timestamp revoked_at = 10; string revoked_by = 11; }
+message AuditEvent { string id = 1; string workspace_id = 2; string actor_id = 3; string action = 4; string resource = 5; string resource_id = 6; google.protobuf.Struct details = 7; google.protobuf.Timestamp created_at = 8; }
+
+message CreateWorkspaceRequest { string name = 1; }
+message GetWorkspaceRequest { string workspace_id = 1; bool include_archived = 2; }
+message UpdateWorkspaceRequest { string workspace_id = 1; string name = 2; int64 version = 3; }
+message ArchiveWorkspaceRequest { string workspace_id = 1; int64 version = 2; }
+message TransferOwnershipRequest { string workspace_id = 1; string new_owner_id = 2; int64 version = 3; }
+message WorkspaceResponse { Workspace workspace = 1; }
+message CreateProjectRequest { string workspace_id = 1; string name = 2; string key = 3; string description = 4; repeated WorkflowStatus workflow = 5; string visibility = 6; }
+message GetProjectRequest { string workspace_id = 1; string project_id = 2; bool include_archived = 3; }
+message ListProjectsRequest { string workspace_id = 1; bool include_archived = 2; }
+message UpdateProjectRequest { string workspace_id = 1; string project_id = 2; string name = 3; string description = 4; repeated WorkflowStatus workflow = 5; string visibility = 6; int64 version = 7; }
+message ArchiveProjectRequest { string workspace_id = 1; string project_id = 2; int64 version = 3; }
+message ProjectResponse { Project project = 1; }
+message ListProjectsResponse { repeated Project projects = 1; }
+message InviteMemberRequest { string workspace_id = 1; string email = 2; string role = 3; }
+message InvitationRequest { string workspace_id = 1; string invitation_id = 2; }
+message AcceptInvitationRequest { string token = 1; }
+message InvitationResponse { Invitation invitation = 1; string token = 2; }
+message MembershipResponse { Membership membership = 1; }
+message ListMembersRequest { string workspace_id = 1; }
+message ListMembersResponse { repeated Membership members = 1; }
+message UpdateMemberRequest { string workspace_id = 1; string user_id = 2; string role = 3; string status = 4; }
+message RemoveMemberRequest { string workspace_id = 1; string user_id = 2; }
+message ListAuditEventsRequest { string workspace_id = 1; int32 limit = 2; }
+message ListAuditEventsResponse { repeated AuditEvent events = 1; }
+
+service WorkspaceService {
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (WorkspaceResponse);
+  rpc GetWorkspace(GetWorkspaceRequest) returns (WorkspaceResponse);
+  rpc UpdateWorkspace(UpdateWorkspaceRequest) returns (WorkspaceResponse);
+  rpc ArchiveWorkspace(ArchiveWorkspaceRequest) returns (WorkspaceResponse);
+  rpc TransferOwnership(TransferOwnershipRequest) returns (WorkspaceResponse);
+  rpc CreateProject(CreateProjectRequest) returns (ProjectResponse);
+  rpc GetProject(GetProjectRequest) returns (ProjectResponse);
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+  rpc UpdateProject(UpdateProjectRequest) returns (ProjectResponse);
+  rpc ArchiveProject(ArchiveProjectRequest) returns (ProjectResponse);
+  rpc InviteMember(InviteMemberRequest) returns (InvitationResponse);
+  rpc ResendInvitation(InvitationRequest) returns (InvitationResponse);
+  rpc RevokeInvitation(InvitationRequest) returns (google.protobuf.Empty);
+  rpc AcceptInvitation(AcceptInvitationRequest) returns (MembershipResponse);
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  rpc UpdateMember(UpdateMemberRequest) returns (MembershipResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (google.protobuf.Empty);
+  rpc ListAuditEvents(ListAuditEventsRequest) returns (ListAuditEventsResponse);
+}

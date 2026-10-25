@@ -1,0 +1,68 @@
+services:
+  mongo:
+    image: mongo:7.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - mongo_data:/data/db
+
+  user-service:
+    build: ./user-service
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://mongo:27017/?replicaSet=rs0
+      MONGO_DATABASE: users
+      JWT_SECRET: local-development-secret-change-me
+      JWT_ACTIVE_KEY_ID: current
+      JWT_ISSUER: user-service
+      HTTP_ALLOWED_ORIGINS: http://localhost:5173
+      AUTH_FRONTEND_URL: http://localhost:5173
+      AUTH_REFRESH_COOKIE_SECURE: "false"
+    expose: ["8080", "50051"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+
+  task-service:
+    build: ./task-service
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://mongo:27017/?replicaSet=rs0
+      MONGO_DATABASE: tasks
+      JWT_SECRET: local-development-secret-change-me
+      JWT_ACTIVE_KEY_ID: current
+      JWT_ISSUER: user-service
+    expose: ["8081", "50052"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+
+  api-gateway:
+    build: ./gateway-service
+    depends_on:
+      user-service:
+        condition: service_started
+      task-service:
+        condition: service_started
+    environment:
+      PUBLIC_ORIGIN: http://localhost:5173
+      USER_SERVICE_URL: http://user-service:8080
+      TASK_SERVICE_URL: http://task-service:8081
+      JWT_SECRET: local-development-secret-change-me
+      JWT_ACTIVE_KEY_ID: current
+      JWT_ISSUER: user-service
+    ports: ["8088:8088"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  mongo_data:

@@ -586,9 +586,10 @@ func validateProject(name, key, description string, workflow []domain.WorkflowSt
 		return domain.ErrInvalidArgument
 	}
 	seen := map[string]bool{}
-	for _, state := range workflow {
-		state.Key = strings.TrimSpace(state.Key)
-		state.Name = strings.TrimSpace(state.Name)
+	for i := range workflow {
+		workflow[i].Key = strings.TrimSpace(workflow[i].Key)
+		workflow[i].Name = strings.TrimSpace(workflow[i].Name)
+		state := workflow[i]
 		if state.Key == "" || state.Name == "" || len(state.Key) > 50 || len(state.Name) > 100 || seen[state.Key] {
 			return domain.ErrInvalidArgument
 		}

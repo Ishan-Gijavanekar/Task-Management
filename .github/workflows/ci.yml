@@ -8,6 +8,26 @@ permissions:
   contents: read
 
 jobs:
+  gateway-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gateway-service/go.mod
+          cache-dependency-path: gateway-service/go.sum
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Reject breaking public API changes
+        run: go run ./cmd/contract-check
+      - name: Verify committed frontend types
+        run: go run ./cmd/openapi-types -check
+      - run: docker build -t api-gateway:test .
+
   task-service:
     runs-on: ubuntu-latest
     defaults:
@@ -95,5 +115,16 @@ jobs:
         with:
           scan-type: image
           image-ref: task-service:test
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Build API gateway image
+        run: docker build -t api-gateway:test ./gateway-service
+
+      - name: Scan API gateway image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: image
+          image-ref: api-gateway:test
           severity: HIGH,CRITICAL
           exit-code: "1"

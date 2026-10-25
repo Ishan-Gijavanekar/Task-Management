@@ -28,7 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mongodb:
-        image: mongo:8
+        # MongoDB 8 can fail at startup on runner kernels >= 6.19 (SERVER-121912).
+        image: mongo:7.0
         ports:
           - 27017:27017
         options: >-

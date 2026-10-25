@@ -100,7 +100,10 @@ func (s *Service) Create(ctx context.Context, actor string, in CreateInput) (*do
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor, policy.TaskWrite); e != nil {
+	if e = s.authorizeProject(ctx, wid, pid, actor, policy.TaskWrite); e != nil {
+		return nil, e
+	}
+	if e = s.validateAssignee(ctx, wid, in.AssigneeID); e != nil {
 		return nil, e
 	}
 	title := strings.TrimSpace(in.Title)
@@ -150,7 +153,14 @@ func (s *Service) Get(ctx context.Context, actor, workspace, id string, deleted 
 	if e = s.authorize(ctx, wid, actor, policy.TaskRead); e != nil {
 		return nil, e
 	}
-	return s.repo.Get(ctx, wid, tid, deleted)
+	task, e := s.repo.Get(ctx, wid, tid, deleted)
+	if e != nil {
+		return nil, e
+	}
+	if e = s.authorizeProject(ctx, wid, task.ProjectID, actor, policy.TaskRead); e != nil {
+		return nil, e
+	}
+	return task, nil
 }
 func (s *Service) Update(ctx context.Context, actor string, in UpdateInput) (*domain.Task, error) {
 	wid, e := parseID(in.WorkspaceID, "workspaceId")
@@ -170,6 +180,12 @@ func (s *Service) Update(ctx context.Context, actor string, in UpdateInput) (*do
 	}
 	old, e := s.repo.Get(ctx, wid, tid, false)
 	if e != nil {
+		return nil, e
+	}
+	if e = s.authorizeProject(ctx, wid, old.ProjectID, actor, policy.TaskWrite); e != nil {
+		return nil, e
+	}
+	if e = s.validateAssignee(ctx, wid, in.AssigneeID); e != nil {
 		return nil, e
 	}
 	if old.Version != in.Version {
@@ -247,6 +263,9 @@ func (s *Service) deleted(ctx context.Context, actor, w, id string, v int64, key
 	if e != nil {
 		return nil, e
 	}
+	if e = s.authorizeProject(ctx, wid, old.ProjectID, actor, policy.TaskWrite); e != nil {
+		return nil, e
+	}
 	if old.Version != v {
 		return nil, domain.ErrConflict
 	}
@@ -285,6 +304,9 @@ func (s *Service) Reorder(ctx context.Context, actor, w, id string, v int64, bef
 	if e != nil {
 		return nil, e
 	}
+	if e = s.authorizeProject(ctx, wid, old.ProjectID, actor, policy.TaskWrite); e != nil {
+		return nil, e
+	}
 	if old.Version != v {
 		return nil, domain.ErrConflict
 	}
@@ -299,7 +321,8 @@ func (s *Service) List(ctx context.Context, actor string, in ListInput) (*ListRe
 	if e != nil {
 		return nil, e
 	}
-	if e = s.authorize(ctx, wid, actor, policy.TaskRead); e != nil {
+	membership, e := s.membership(ctx, wid, actor, policy.TaskRead)
+	if e != nil {
 		return nil, e
 	}
 	for _, status := range in.Statuses {
@@ -319,6 +342,23 @@ func (s *Service) List(ctx context.Context, actor string, in ListInput) (*ListRe
 			return nil, e
 		}
 		f.ProjectID = &x
+		if e = projectAllowed(ctx, s.repo, membership, wid, x, policy.TaskRead); e != nil {
+			return nil, e
+		}
+	} else if membership.Role == domain.RoleMember || membership.Role == domain.RoleViewer {
+		projects, listErr := s.repo.ListProjects(ctx, wid, true)
+		if listErr != nil {
+			return nil, listErr
+		}
+		f.ProjectIDs = make([]primitive.ObjectID, 0, len(projects))
+		for _, project := range projects {
+			if project.Visibility == domain.ProjectWorkspace {
+				f.ProjectIDs = append(f.ProjectIDs, project.ID)
+			}
+		}
+		if len(f.ProjectIDs) == 0 {
+			return &ListResult{Tasks: []*domain.Task{}}, nil
+		}
 	}
 	if in.LabelID != "" {
 		x, e := parseID(in.LabelID, "labelId")
@@ -390,6 +430,9 @@ func (s *Service) BatchUpdate(ctx context.Context, actor, w, key string, items [
 		if e != nil {
 			return nil, e
 		}
+		if e = s.authorizeProject(ctx, wid, old.ProjectID, actor, policy.TaskWrite); e != nil {
+			return nil, e
+		}
 		if old.Version != i.Version {
 			return nil, domain.ErrConflict
 		}
@@ -407,6 +450,9 @@ func (s *Service) BatchUpdate(ctx context.Context, actor, w, key string, items [
 			t.Priority = i.Priority
 		}
 		if i.AssigneeID != "" {
+			if e = s.validateAssignee(ctx, wid, i.AssigneeID); e != nil {
+				return nil, e
+			}
 			t.AssigneeID = i.AssigneeID
 		}
 		t.Version++
@@ -420,11 +466,62 @@ func (s *Service) BatchUpdate(ctx context.Context, actor, w, key string, items [
 }
 
 func (s *Service) authorize(ctx context.Context, wid primitive.ObjectID, actor string, action policy.Action) error {
+	_, e := s.membership(ctx, wid, actor, action)
+	return e
+}
+
+func (s *Service) membership(ctx context.Context, wid primitive.ObjectID, actor string, action policy.Action) (*domain.Membership, error) {
 	if e := s.identities.Validate(ctx, actor); e != nil {
+		return nil, e
+	}
+	membership, e := s.authorizer.Require(ctx, wid, actor, action)
+	if e != nil {
+		return nil, e
+	}
+	if action == policy.TaskWrite {
+		workspace, workspaceErr := s.repo.GetWorkspace(ctx, wid, true)
+		if workspaceErr != nil {
+			return nil, workspaceErr
+		}
+		if workspace.ArchivedAt != nil {
+			return nil, domain.ErrConflict
+		}
+	}
+	return membership, nil
+}
+
+func (s *Service) authorizeProject(ctx context.Context, wid, pid primitive.ObjectID, actor string, action policy.Action) error {
+	membership, e := s.membership(ctx, wid, actor, action)
+	if e != nil {
 		return e
 	}
-	_, e := s.authorizer.Require(ctx, wid, actor, action)
-	return e
+	return projectAllowed(ctx, s.repo, membership, wid, pid, action)
+}
+
+func projectAllowed(ctx context.Context, repo repository.TaskRepository, membership *domain.Membership, wid, pid primitive.ObjectID, action policy.Action) error {
+	project, e := repo.GetProject(ctx, wid, pid, true)
+	if e != nil {
+		return e
+	}
+	if project.Visibility == domain.ProjectPrivate && membership.Role != domain.RoleOwner && membership.Role != domain.RoleAdmin {
+		return domain.ErrForbidden
+	}
+	if action == policy.TaskWrite && project.ArchivedAt != nil {
+		return domain.ErrConflict
+	}
+	return nil
+}
+
+func (s *Service) validateAssignee(ctx context.Context, wid primitive.ObjectID, assignee string) error {
+	assignee = strings.TrimSpace(assignee)
+	if assignee == "" {
+		return nil
+	}
+	membership, e := s.authorizer.Membership(ctx, wid, assignee)
+	if e != nil || membership.Status != domain.MembershipActive {
+		return fmt.Errorf("%w: assignee must be an active workspace member", domain.ErrInvalidArgument)
+	}
+	return nil
 }
 func (s *Service) replay(ctx context.Context, wid primitive.ObjectID, actor, key, h string) (*domain.Task, error) {
 	if key == "" {

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/mail"
 	"regexp"
@@ -226,10 +227,18 @@ func (s *AdministrationService) GetProject(ctx context.Context, actor, workspace
 	if err != nil {
 		return nil, err
 	}
-	if _, err = s.require(ctx, wid, actor, policy.ProjectRead); err != nil {
+	membership, err := s.require(ctx, wid, actor, policy.ProjectRead)
+	if err != nil {
 		return nil, err
 	}
-	return s.repo.GetProject(ctx, wid, pid, archived)
+	project, err := s.repo.GetProject(ctx, wid, pid, archived)
+	if err != nil {
+		return nil, err
+	}
+	if project.Visibility == domain.ProjectPrivate && membership.Role != domain.RoleOwner && membership.Role != domain.RoleAdmin {
+		return nil, domain.ErrForbidden
+	}
+	return project, nil
 }
 
 func (s *AdministrationService) ListProjects(ctx context.Context, actor, workspaceID string, archived bool) ([]*domain.Project, error) {
@@ -237,10 +246,24 @@ func (s *AdministrationService) ListProjects(ctx context.Context, actor, workspa
 	if err != nil {
 		return nil, err
 	}
-	if _, err = s.require(ctx, wid, actor, policy.ProjectRead); err != nil {
+	membership, err := s.require(ctx, wid, actor, policy.ProjectRead)
+	if err != nil {
 		return nil, err
 	}
-	return s.repo.ListProjects(ctx, wid, archived)
+	projects, err := s.repo.ListProjects(ctx, wid, archived)
+	if err != nil {
+		return nil, err
+	}
+	if membership.Role == domain.RoleOwner || membership.Role == domain.RoleAdmin {
+		return projects, nil
+	}
+	visible := projects[:0]
+	for _, project := range projects {
+		if project.Visibility == domain.ProjectWorkspace {
+			visible = append(visible, project)
+		}
+	}
+	return visible, nil
 }
 
 func (s *AdministrationService) UpdateProject(ctx context.Context, actor, workspaceID, projectID string, in UpdateProjectInput) (*domain.Project, error) {
@@ -415,6 +438,11 @@ func (s *AdministrationService) AcceptInvitation(ctx context.Context, actor, tok
 	if !now.Before(inv.ExpiresAt) {
 		return nil, domain.ErrInvitationExpired
 	}
+	if _, membershipErr := s.repo.GetMembership(ctx, inv.WorkspaceID, actor); membershipErr == nil {
+		return nil, domain.ErrConflict
+	} else if !errors.Is(membershipErr, domain.ErrNotFound) {
+		return nil, membershipErr
+	}
 	inv.AcceptedAt, inv.AcceptedBy = &now, actor
 	m := &domain.Membership{ID: primitive.NewObjectID(), WorkspaceID: inv.WorkspaceID, UserID: actor, Role: inv.Role, Status: domain.MembershipActive, CreatedAt: now, UpdatedAt: now}
 	if err = s.repo.AcceptInvitation(ctx, inv, m, audit(inv.WorkspaceID, actor, "invitation.accepted", "invitation", inv.ID.Hex(), nil, now)); err != nil {
@@ -525,7 +553,20 @@ func (s *AdministrationService) require(ctx context.Context, workspaceID primiti
 	if err := s.identities.Validate(ctx, actor); err != nil {
 		return nil, err
 	}
-	return s.authorizer.Require(ctx, workspaceID, actor, action)
+	membership, err := s.authorizer.Require(ctx, workspaceID, actor, action)
+	if err != nil {
+		return nil, err
+	}
+	if action != policy.WorkspaceRead && action != policy.ProjectRead && action != policy.MemberRead && action != policy.AuditRead {
+		workspace, workspaceErr := s.repo.GetWorkspace(ctx, workspaceID, true)
+		if workspaceErr != nil {
+			return nil, workspaceErr
+		}
+		if workspace.ArchivedAt != nil {
+			return nil, domain.ErrConflict
+		}
+	}
+	return membership, nil
 }
 
 func workspaceName(raw string) (string, error) {

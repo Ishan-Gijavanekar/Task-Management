@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/Ishan-Gijavanekar/task-service/internal/domain"
 	"github.com/Ishan-Gijavanekar/task-service/internal/repository"
@@ -12,14 +13,17 @@ import (
 )
 
 type memoryRepo struct {
-	tasks   map[primitive.ObjectID]*domain.Task
-	members map[string]bool
-	keys    map[string]*repository.Idempotency
-	events  int
+	tasks      map[primitive.ObjectID]*domain.Task
+	members    map[string]domain.WorkspaceRole
+	projects   map[primitive.ObjectID]*domain.Project
+	workspaces map[primitive.ObjectID]*domain.Workspace
+	keys       map[string]*repository.Idempotency
+	events     int
 }
 
 func newMemory(w primitive.ObjectID, actor string) *memoryRepo {
-	return &memoryRepo{tasks: map[primitive.ObjectID]*domain.Task{}, members: map[string]bool{w.Hex() + actor: true}, keys: map[string]*repository.Idempotency{}}
+	projectID, _ := primitive.ObjectIDFromHex("000000000000000000000001")
+	return &memoryRepo{tasks: map[primitive.ObjectID]*domain.Task{}, members: map[string]domain.WorkspaceRole{w.Hex() + actor: domain.RoleMember}, projects: map[primitive.ObjectID]*domain.Project{projectID: {ID: projectID, WorkspaceID: w, Visibility: domain.ProjectWorkspace}}, workspaces: map[primitive.ObjectID]*domain.Workspace{w: {ID: w}}, keys: map[string]*repository.Idempotency{}}
 }
 func (m *memoryRepo) Apply(_ context.Context, x repository.Mutation) (*domain.Task, error) {
 	if x.Idempotency != nil {
@@ -77,6 +81,21 @@ func (m *memoryRepo) List(_ context.Context, f repository.ListFilter) ([]*domain
 		if t.WorkspaceID != f.WorkspaceID {
 			continue
 		}
+		if f.ProjectID != nil && t.ProjectID != *f.ProjectID {
+			continue
+		}
+		if f.ProjectIDs != nil {
+			allowed := false
+			for _, id := range f.ProjectIDs {
+				if t.ProjectID == id {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				continue
+			}
+		}
 		if f.AfterPosition != nil && (t.Position < *f.AfterPosition || (t.Position == *f.AfterPosition && t.ID.Hex() <= f.AfterID.Hex())) {
 			continue
 		}
@@ -102,10 +121,37 @@ func (m *memoryRepo) FindIdempotency(_ context.Context, _ primitive.ObjectID, _,
 	return r, nil
 }
 func (m *memoryRepo) GetMembership(_ context.Context, w primitive.ObjectID, a string) (*domain.Membership, error) {
-	if !m.members[w.Hex()+a] {
+	role, ok := m.members[w.Hex()+a]
+	if !ok {
 		return nil, domain.ErrNotFound
 	}
-	return &domain.Membership{WorkspaceID: w, UserID: a, Role: domain.RoleMember, Status: domain.MembershipActive}, nil
+	return &domain.Membership{WorkspaceID: w, UserID: a, Role: role, Status: domain.MembershipActive}, nil
+}
+func (m *memoryRepo) GetWorkspace(_ context.Context, w primitive.ObjectID, _ bool) (*domain.Workspace, error) {
+	x := m.workspaces[w]
+	if x == nil {
+		return nil, domain.ErrNotFound
+	}
+	c := *x
+	return &c, nil
+}
+func (m *memoryRepo) GetProject(_ context.Context, w, id primitive.ObjectID, _ bool) (*domain.Project, error) {
+	p := m.projects[id]
+	if p == nil || p.WorkspaceID != w {
+		return nil, domain.ErrNotFound
+	}
+	c := *p
+	return &c, nil
+}
+func (m *memoryRepo) ListProjects(_ context.Context, w primitive.ObjectID, _ bool) ([]*domain.Project, error) {
+	var out []*domain.Project
+	for _, p := range m.projects {
+		if p.WorkspaceID == w {
+			c := *p
+			out = append(out, &c)
+		}
+	}
+	return out, nil
 }
 func (m *memoryRepo) DependencyPathExists(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (bool, error) {
 	return false, nil
@@ -168,7 +214,9 @@ func TestCursorPaginationDoesNotRepeatTasks(t *testing.T) {
 	s, _, w, a := setup(t)
 	for i := 0; i < 3; i++ {
 		p := float64(i + 1)
-		_, e := s.Create(context.Background(), a, CreateInput{WorkspaceID: w.Hex(), ProjectID: primitive.NewObjectID().Hex(), Title: "task", Position: &p})
+		pid := primitive.NewObjectID()
+		s.repo.(*memoryRepo).projects[pid] = &domain.Project{ID: pid, WorkspaceID: w, Visibility: domain.ProjectWorkspace}
+		_, e := s.Create(context.Background(), a, CreateInput{WorkspaceID: w.Hex(), ProjectID: pid.Hex(), Title: "task", Position: &p})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -186,5 +234,57 @@ func TestCursorPaginationDoesNotRepeatTasks(t *testing.T) {
 	}
 	if len(second.Tasks) != 1 || second.Tasks[0].ID == first.Tasks[1].ID {
 		t.Fatal("cursor repeated a task")
+	}
+}
+
+func TestProjectTenantAndVisibilityEnforcedForTasks(t *testing.T) {
+	s, repo, w, actor := setup(t)
+	ctx := context.Background()
+	foreignProject := primitive.NewObjectID()
+	repo.projects[foreignProject] = &domain.Project{ID: foreignProject, WorkspaceID: primitive.NewObjectID(), Visibility: domain.ProjectWorkspace}
+	if _, err := s.Create(ctx, actor, CreateInput{WorkspaceID: w.Hex(), ProjectID: foreignProject.Hex(), Title: "cross tenant"}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("cross-workspace project accepted: %v", err)
+	}
+	privateProject := primitive.NewObjectID()
+	repo.projects[privateProject] = &domain.Project{ID: privateProject, WorkspaceID: w, Visibility: domain.ProjectPrivate}
+	repo.members[w.Hex()+actor] = domain.RoleOwner
+	s.authorizer.Invalidate(w, actor)
+	task, err := s.Create(ctx, actor, CreateInput{WorkspaceID: w.Hex(), ProjectID: privateProject.Hex(), Title: "private"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo.members[w.Hex()+actor] = domain.RoleViewer
+	s.authorizer.Invalidate(w, actor)
+	if _, err = s.Get(ctx, actor, w.Hex(), task.ID.Hex(), false); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("viewer read private task: %v", err)
+	}
+	result, err := s.List(ctx, actor, ListInput{WorkspaceID: w.Hex()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Tasks) != 0 {
+		t.Fatal("private task leaked through list")
+	}
+	if _, err = s.Create(ctx, actor, CreateInput{WorkspaceID: w.Hex(), ProjectID: "000000000000000000000001", Title: "viewer write"}); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("viewer wrote task: %v", err)
+	}
+}
+
+func TestTaskWritesRequireActiveWorkspaceAndProject(t *testing.T) {
+	s, repo, w, actor := setup(t)
+	ctx := context.Background()
+	projectID, _ := primitive.ObjectIDFromHex("000000000000000000000001")
+	if _, err := s.Create(ctx, actor, CreateInput{WorkspaceID: w.Hex(), ProjectID: projectID.Hex(), Title: "bad assignee", AssigneeID: "outsider"}); !errors.Is(err, domain.ErrInvalidArgument) {
+		t.Fatalf("non-member assignee accepted: %v", err)
+	}
+	now := time.Now()
+	repo.projects[projectID].ArchivedAt = &now
+	if _, err := s.Create(ctx, actor, CreateInput{WorkspaceID: w.Hex(), ProjectID: projectID.Hex(), Title: "archived project"}); !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("write to archived project accepted: %v", err)
+	}
+	repo.projects[projectID].ArchivedAt = nil
+	repo.workspaces[w].ArchivedAt = &now
+	if _, err := s.Create(ctx, actor, CreateInput{WorkspaceID: w.Hex(), ProjectID: projectID.Hex(), Title: "archived workspace"}); !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("write to archived workspace accepted: %v", err)
 	}
 }

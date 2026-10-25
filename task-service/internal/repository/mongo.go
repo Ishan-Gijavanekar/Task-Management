@@ -194,6 +194,8 @@ func (r *MongoRepository) List(ctx context.Context, f ListFilter) ([]*domain.Tas
 	}
 	if f.ProjectID != nil {
 		filter["projectId"] = *f.ProjectID
+	} else if f.ProjectIDs != nil {
+		filter["projectId"] = bson.M{"$in": f.ProjectIDs}
 	}
 	if len(f.Statuses) > 0 {
 		filter["status"] = bson.M{"$in": f.Statuses}

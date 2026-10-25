@@ -224,7 +224,7 @@ func (r *MongoRepository) AcceptInvitation(ctx context.Context, invitation *doma
 		if res.MatchedCount == 0 {
 			return domain.ErrConflict
 		}
-		_, err = r.memberships.ReplaceOne(tx, bson.M{"workspaceId": member.WorkspaceID, "userId": member.UserID}, member, options.Replace().SetUpsert(true))
+		_, err = r.memberships.InsertOne(tx, member)
 		if err != nil {
 			return mapMongoError(err)
 		}
@@ -233,7 +233,7 @@ func (r *MongoRepository) AcceptInvitation(ctx context.Context, invitation *doma
 }
 
 func (r *MongoRepository) CountRecentInvitations(ctx context.Context, workspaceID primitive.ObjectID, actorID string, since time.Time) (int64, error) {
-	return r.invitations.CountDocuments(ctx, bson.M{"workspaceId": workspaceID, "invitedBy": actorID, "createdAt": bson.M{"$gte": since}})
+	return r.auditEvents.CountDocuments(ctx, bson.M{"workspaceId": workspaceID, "actorId": actorID, "action": bson.M{"$in": []string{"invitation.created", "invitation.resent"}}, "createdAt": bson.M{"$gte": since}})
 }
 
 func (r *MongoRepository) ListAuditEvents(ctx context.Context, workspaceID primitive.ObjectID, limit int64) ([]*domain.AuditEvent, error) {

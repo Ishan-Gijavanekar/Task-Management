@@ -30,6 +30,7 @@ type Mutation struct {
 type ListFilter struct {
 	WorkspaceID    primitive.ObjectID
 	ProjectID      *primitive.ObjectID
+	ProjectIDs     []primitive.ObjectID
 	Statuses       []domain.TaskStatus
 	Priorities     []domain.Priority
 	AssigneeID     string
@@ -51,6 +52,9 @@ type TaskRepository interface {
 	List(context.Context, ListFilter) ([]*domain.Task, error)
 	FindIdempotency(context.Context, primitive.ObjectID, string, string) (*Idempotency, error)
 	GetMembership(context.Context, primitive.ObjectID, string) (*domain.Membership, error)
+	GetWorkspace(context.Context, primitive.ObjectID, bool) (*domain.Workspace, error)
+	GetProject(context.Context, primitive.ObjectID, primitive.ObjectID, bool) (*domain.Project, error)
+	ListProjects(context.Context, primitive.ObjectID, bool) ([]*domain.Project, error)
 	DependencyPathExists(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (bool, error)
 	Ping(context.Context) error
 }

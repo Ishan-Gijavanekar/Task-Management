@@ -40,6 +40,11 @@ func (h *Handler) Register(r fiber.Router) {
 	r.Patch("/workspaces/:workspaceId/tasks/:id/comments/:commentId", h.updateComment)
 	r.Delete("/workspaces/:workspaceId/tasks/:id/comments/:commentId", h.deleteComment)
 	r.Get("/workspaces/:workspaceId/tasks/:id/activities", h.listActivities)
+	r.Get("/notifications", h.listNotifications)
+	r.Post("/notifications/read", h.markNotificationsRead)
+	r.Post("/notifications/:notificationId/read", h.markNotificationsRead)
+	r.Get("/notification-preferences", h.getNotificationPreferences)
+	r.Put("/notification-preferences", h.updateNotificationPreferences)
 }
 func actor(c *fiber.Ctx) string { id, _ := c.Locals("actorId").(string); return id }
 func key(c *fiber.Ctx) string   { return strings.TrimSpace(c.Get("Idempotency-Key")) }

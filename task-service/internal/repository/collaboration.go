@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/Ishan-Gijavanekar/task-service/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,6 +17,9 @@ func (r *MongoRepository) CreateComment(ctx context.Context, comment *domain.Com
 			return mapMongoError(err)
 		}
 		if _, err := r.activities.InsertOne(tx, activity); err != nil {
+			return err
+		}
+		if err := r.createMentionNotifications(tx, comment); err != nil {
 			return err
 		}
 		_, err := r.outbox.InsertOne(tx, outbox)
@@ -35,9 +39,70 @@ func (r *MongoRepository) UpdateComment(ctx context.Context, comment *domain.Com
 		if _, err = r.activities.InsertOne(tx, activity); err != nil {
 			return err
 		}
+		if err = r.createMentionNotifications(tx, comment); err != nil {
+			return err
+		}
 		_, err = r.outbox.InsertOne(tx, outbox)
 		return err
 	})
+}
+
+func (r *MongoRepository) createMentionNotifications(ctx context.Context, comment *domain.Comment) error {
+	for _, userID := range comment.MentionIDs {
+		var preferences domain.NotificationPreferences
+		err := r.preferences.FindOne(ctx, bson.M{"_id": userID}).Decode(&preferences)
+		if err == nil && !preferences.Mentions {
+			continue
+		}
+		if err != nil && err != mongo.ErrNoDocuments {
+			return err
+		}
+		n := &domain.Notification{ID: primitive.NewObjectID(), WorkspaceID: comment.WorkspaceID, TaskID: comment.TaskID, UserID: userID, ActorID: comment.AuthorID, Type: "comment.mentioned", Message: "You were mentioned in a task comment", SourceKey: comment.ID.Hex() + ":" + userID, CreatedAt: comment.UpdatedAt}
+		_, err = r.notifications.UpdateOne(ctx, bson.M{"sourceKey": n.SourceKey}, bson.M{"$setOnInsert": n}, options.Update().SetUpsert(true))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *MongoRepository) ListNotifications(ctx context.Context, userID string, unread bool, limit int64) ([]*domain.Notification, error) {
+	filter := bson.M{"userId": userID}
+	if unread {
+		filter["readAt"] = bson.M{"$exists": false}
+	}
+	cursor, err := r.notifications.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(limit))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var items []*domain.Notification
+	if err = cursor.All(ctx, &items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *MongoRepository) MarkNotificationRead(ctx context.Context, userID string, id *primitive.ObjectID, now time.Time) error {
+	filter := bson.M{"userId": userID, "readAt": bson.M{"$exists": false}}
+	if id != nil {
+		filter["_id"] = *id
+	}
+	_, err := r.notifications.UpdateMany(ctx, filter, bson.M{"$set": bson.M{"readAt": now}})
+	return err
+}
+
+func (r *MongoRepository) GetNotificationPreferences(ctx context.Context, userID string) (*domain.NotificationPreferences, error) {
+	var preferences domain.NotificationPreferences
+	if err := r.preferences.FindOne(ctx, bson.M{"_id": userID}).Decode(&preferences); err != nil {
+		return nil, mapMongoError(err)
+	}
+	return &preferences, nil
+}
+
+func (r *MongoRepository) SetNotificationPreferences(ctx context.Context, preferences *domain.NotificationPreferences) error {
+	_, err := r.preferences.ReplaceOne(ctx, bson.M{"_id": preferences.UserID}, preferences, options.Replace().SetUpsert(true))
+	return err
 }
 
 func (r *MongoRepository) GetComment(ctx context.Context, workspaceID, taskID, commentID primitive.ObjectID) (*domain.Comment, error) {

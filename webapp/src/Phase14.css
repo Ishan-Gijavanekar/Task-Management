@@ -415,6 +415,44 @@
 .muted {
   color: var(--ink-soft);
 }
+.notification-list {
+  display: grid;
+  padding: 0;
+  overflow: hidden;
+}
+.notification-list > a {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.notification-list > a.unread {
+  border-left: 3px solid var(--brand);
+  background: #fff8f5;
+  font-weight: 700;
+}
+.notification-list time {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.preference-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.preference-panel label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-transform: capitalize;
+}
+.preference-panel input {
+  width: auto;
+  min-height: auto;
+}
 .search-field input {
   min-height: 38px;
   padding-left: 0;

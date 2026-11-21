@@ -12,6 +12,8 @@ import type {
   LoginRequest,
   MemberList,
   MessageResponse,
+  NotificationList,
+  NotificationPreferences,
   Project,
   ProjectList,
   RegisterRequest,
@@ -284,6 +286,29 @@ export const api = {
       `/workspaces/${workspaceId}/tasks/${taskId}/activities?limit=100`,
       { signal: signal ?? null },
     ).then((result) => ({ ...result, activities: result.activities ?? [] })),
+  listNotifications: (unread = false, signal?: AbortSignal) =>
+    request<NotificationList>(`/notifications?unread=${unread}&limit=100`, {
+      signal: signal ?? null,
+    }).then((result) => ({
+      ...result,
+      notifications: result.notifications ?? [],
+    })),
+  markNotificationsRead: (notificationId?: string) =>
+    request<void>(
+      notificationId
+        ? `/notifications/${notificationId}/read`
+        : '/notifications/read',
+      { method: 'POST', body: {} },
+    ),
+  getNotificationPreferences: (signal?: AbortSignal) =>
+    request<NotificationPreferences>('/notification-preferences', {
+      signal: signal ?? null,
+    }),
+  updateNotificationPreferences: (preferences: NotificationPreferences) =>
+    request<NotificationPreferences>('/notification-preferences', {
+      method: 'PUT',
+      body: preferences,
+    }),
 }
 
 export function shouldRetry(failureCount: number, error: unknown) {

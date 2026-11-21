@@ -169,6 +169,25 @@ export interface Membership {
   workspaceId: string;
 }
 
+export interface Notification {
+  actorId: string;
+  createdAt: string;
+  id: string;
+  message: string;
+  readAt?: string;
+  taskId: string;
+  type: string;
+  userId: string;
+  workspaceId: string;
+}
+
+export interface NotificationPreferences {
+  emailEnabled: boolean;
+  mentions: boolean;
+  taskUpdates: boolean;
+  userId: string;
+}
+
 export interface Project {
   description?: string;
   id: string;
@@ -331,12 +350,14 @@ export const apiOperations = {
   deleteUser: { method: "DELETE", path: "/users/{userId}" },
   forgotPassword: { method: "POST", path: "/auth/forgot-password" },
   getCurrentUser: { method: "GET", path: "/me" },
+  getNotificationPreferences: { method: "GET", path: "/notification-preferences" },
   getProject: { method: "GET", path: "/workspaces/{workspaceId}/projects/{projectId}" },
   getTask: { method: "GET", path: "/workspaces/{workspaceId}/tasks/{taskId}" },
   getUser: { method: "GET", path: "/users/{userId}" },
   getWorkspace: { method: "GET", path: "/workspaces/{workspaceId}" },
   inviteWorkspaceMember: { method: "POST", path: "/workspaces/{workspaceId}/invitations" },
   listLabels: { method: "GET", path: "/workspaces/{workspaceId}/labels" },
+  listNotifications: { method: "GET", path: "/notifications" },
   listProjects: { method: "GET", path: "/workspaces/{workspaceId}/projects" },
   listTaskActivities: { method: "GET", path: "/workspaces/{workspaceId}/tasks/{taskId}/activities" },
   listTaskComments: { method: "GET", path: "/workspaces/{workspaceId}/tasks/{taskId}/comments" },
@@ -346,6 +367,8 @@ export const apiOperations = {
   listWorkspaceMembers: { method: "GET", path: "/workspaces/{workspaceId}/members" },
   login: { method: "POST", path: "/auth/login" },
   logout: { method: "POST", path: "/auth/logout" },
+  markAllNotificationsRead: { method: "POST", path: "/notifications/read" },
+  markNotificationRead: { method: "POST", path: "/notifications/{notificationId}/read" },
   refreshSession: { method: "POST", path: "/auth/refresh" },
   register: { method: "POST", path: "/auth/register" },
   removeWorkspaceMember: { method: "DELETE", path: "/workspaces/{workspaceId}/members/{userId}" },
@@ -356,6 +379,7 @@ export const apiOperations = {
   restoreTask: { method: "POST", path: "/workspaces/{workspaceId}/tasks/{taskId}/restore" },
   revokeInvitation: { method: "DELETE", path: "/workspaces/{workspaceId}/invitations/{invitationId}" },
   transferWorkspaceOwnership: { method: "POST", path: "/workspaces/{workspaceId}/transfer" },
+  updateNotificationPreferences: { method: "PUT", path: "/notification-preferences" },
   updateProject: { method: "PATCH", path: "/workspaces/{workspaceId}/projects/{projectId}" },
   updateTask: { method: "PATCH", path: "/workspaces/{workspaceId}/tasks/{taskId}" },
   updateTaskComment: { method: "PATCH", path: "/workspaces/{workspaceId}/tasks/{taskId}/comments/{commentId}" },

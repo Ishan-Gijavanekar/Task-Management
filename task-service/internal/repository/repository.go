@@ -62,6 +62,10 @@ type TaskRepository interface {
 	GetComment(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (*domain.Comment, error)
 	ListComments(context.Context, primitive.ObjectID, primitive.ObjectID, *primitive.ObjectID, int64) ([]*domain.Comment, error)
 	ListActivities(context.Context, primitive.ObjectID, primitive.ObjectID, *primitive.ObjectID, int64) ([]*domain.ActivityEvent, error)
+	ListNotifications(context.Context, string, bool, int64) ([]*domain.Notification, error)
+	MarkNotificationRead(context.Context, string, *primitive.ObjectID, time.Time) error
+	GetNotificationPreferences(context.Context, string) (*domain.NotificationPreferences, error)
+	SetNotificationPreferences(context.Context, *domain.NotificationPreferences) error
 	Ping(context.Context) error
 }
 

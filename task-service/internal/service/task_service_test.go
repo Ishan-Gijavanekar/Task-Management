@@ -13,14 +13,16 @@ import (
 )
 
 type memoryRepo struct {
-	tasks      map[primitive.ObjectID]*domain.Task
-	members    map[string]domain.WorkspaceRole
-	projects   map[primitive.ObjectID]*domain.Project
-	workspaces map[primitive.ObjectID]*domain.Workspace
-	keys       map[string]*repository.Idempotency
-	events     int
-	comments   map[primitive.ObjectID]*domain.Comment
-	activities []*domain.ActivityEvent
+	tasks         map[primitive.ObjectID]*domain.Task
+	members       map[string]domain.WorkspaceRole
+	projects      map[primitive.ObjectID]*domain.Project
+	workspaces    map[primitive.ObjectID]*domain.Workspace
+	keys          map[string]*repository.Idempotency
+	events        int
+	comments      map[primitive.ObjectID]*domain.Comment
+	activities    []*domain.ActivityEvent
+	notifications []*domain.Notification
+	preferences   *domain.NotificationPreferences
 }
 
 func newMemory(w primitive.ObjectID, actor string) *memoryRepo {
@@ -135,6 +137,9 @@ func (m *memoryRepo) LabelsExist(_ context.Context, _ primitive.ObjectID, _ []pr
 func (m *memoryRepo) CreateComment(_ context.Context, comment *domain.Comment, activity *domain.ActivityEvent, _ *domain.OutboxEvent) error {
 	m.comments[comment.ID] = comment
 	m.activities = append(m.activities, activity)
+	for _, userID := range comment.MentionIDs {
+		m.notifications = append(m.notifications, &domain.Notification{ID: primitive.NewObjectID(), WorkspaceID: comment.WorkspaceID, TaskID: comment.TaskID, UserID: userID, ActorID: comment.AuthorID, Type: "comment.mentioned", Message: "You were mentioned in a task comment", CreatedAt: comment.CreatedAt})
+	}
 	return nil
 }
 func (m *memoryRepo) UpdateComment(_ context.Context, comment *domain.Comment, expected int64, activity *domain.ActivityEvent, _ *domain.OutboxEvent) error {
@@ -177,6 +182,38 @@ func (m *memoryRepo) ListActivities(_ context.Context, workspaceID, taskID primi
 		out = out[:limit]
 	}
 	return out, nil
+}
+func (m *memoryRepo) ListNotifications(_ context.Context, userID string, unread bool, limit int64) ([]*domain.Notification, error) {
+	var out []*domain.Notification
+	for _, item := range m.notifications {
+		if item.UserID == userID && (!unread || item.ReadAt == nil) {
+			out = append(out, item)
+		}
+	}
+	if int64(len(out)) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+func (m *memoryRepo) MarkNotificationRead(_ context.Context, userID string, id *primitive.ObjectID, now time.Time) error {
+	for _, item := range m.notifications {
+		if item.UserID == userID && (id == nil || item.ID == *id) {
+			item.ReadAt = &now
+		}
+	}
+	return nil
+}
+func (m *memoryRepo) GetNotificationPreferences(_ context.Context, userID string) (*domain.NotificationPreferences, error) {
+	if m.preferences == nil || m.preferences.UserID != userID {
+		return nil, domain.ErrNotFound
+	}
+	copy := *m.preferences
+	return &copy, nil
+}
+func (m *memoryRepo) SetNotificationPreferences(_ context.Context, preferences *domain.NotificationPreferences) error {
+	copy := *preferences
+	m.preferences = &copy
+	return nil
 }
 func (m *memoryRepo) GetWorkspace(_ context.Context, w primitive.ObjectID, _ bool) (*domain.Workspace, error) {
 	x := m.workspaces[w]

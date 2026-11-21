@@ -14,19 +14,21 @@ import (
 )
 
 type MongoRepository struct {
-	db          *mongo.Database
-	tasks       *mongo.Collection
-	activities  *mongo.Collection
-	comments    *mongo.Collection
-	outbox      *mongo.Collection
-	idempotency *mongo.Collection
-	memberships *mongo.Collection
-	workspaces  *mongo.Collection
-	projects    *mongo.Collection
-	labels      *mongo.Collection
-	invitations *mongo.Collection
-	auditEvents *mongo.Collection
-	rateLimits  *mongo.Collection
+	db            *mongo.Database
+	tasks         *mongo.Collection
+	activities    *mongo.Collection
+	comments      *mongo.Collection
+	outbox        *mongo.Collection
+	notifications *mongo.Collection
+	preferences   *mongo.Collection
+	idempotency   *mongo.Collection
+	memberships   *mongo.Collection
+	workspaces    *mongo.Collection
+	projects      *mongo.Collection
+	labels        *mongo.Collection
+	invitations   *mongo.Collection
+	auditEvents   *mongo.Collection
+	rateLimits    *mongo.Collection
 }
 
 func NewMongoRepository(db *mongo.Database) (*MongoRepository, error) {
@@ -34,7 +36,7 @@ func NewMongoRepository(db *mongo.Database) (*MongoRepository, error) {
 		return nil, fmt.Errorf("mongo database is required")
 	}
 	return &MongoRepository{
-		db: db, tasks: db.Collection("tasks"), activities: db.Collection("task_activities"), comments: db.Collection("task_comments"), outbox: db.Collection("outbox_events"),
+		db: db, tasks: db.Collection("tasks"), activities: db.Collection("task_activities"), comments: db.Collection("task_comments"), outbox: db.Collection("outbox_events"), notifications: db.Collection("notifications"), preferences: db.Collection("notification_preferences"),
 		idempotency: db.Collection("task_idempotency"), memberships: db.Collection("workspace_memberships"),
 		workspaces: db.Collection("workspaces"), projects: db.Collection("projects"), labels: db.Collection("workspace_labels"),
 		invitations: db.Collection("workspace_invitations"), auditEvents: db.Collection("workspace_audit_events"),
@@ -62,6 +64,12 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 	}
 	if _, err := r.outbox.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "publishedAt", Value: 1}, {Key: "createdAt", Value: 1}}}); err != nil {
 		return fmt.Errorf("create outbox index: %w", err)
+	}
+	if _, err := r.notifications.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{Keys: bson.D{{Key: "sourceKey", Value: 1}}, Options: options.Index().SetUnique(true)},
+	}); err != nil {
+		return fmt.Errorf("create notification indexes: %w", err)
 	}
 	if _, err := r.memberships.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}); err != nil {
 		return fmt.Errorf("create membership index: %w", err)

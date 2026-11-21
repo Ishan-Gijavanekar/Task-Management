@@ -21,6 +21,13 @@ func TestCommentLifecycleRecordsActivity(t *testing.T) {
 	if err != nil || comment.Body != "Hello" || len(comment.MentionIDs) != 1 {
 		t.Fatalf("unexpected comment: %#v, %v", comment, err)
 	}
+	notifications, err := service.ListNotifications(context.Background(), "mentioned", true, 10)
+	if err != nil || len(notifications) != 1 {
+		t.Fatalf("unexpected notifications: %#v, %v", notifications, err)
+	}
+	if err = service.MarkNotificationsRead(context.Background(), "mentioned", notifications[0].ID.Hex()); err != nil {
+		t.Fatal(err)
+	}
 	comment, err = service.UpdateComment(context.Background(), "author", w.Hex(), task.ID.Hex(), comment.ID.Hex(), "Updated", nil, comment.Version)
 	if err != nil || comment.Version != 2 {
 		t.Fatalf("unexpected update: %#v, %v", comment, err)

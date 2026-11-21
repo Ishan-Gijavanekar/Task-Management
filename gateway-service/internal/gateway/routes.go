@@ -37,6 +37,20 @@ func Match(method, rawPath string) (Route, bool) {
 	if resource == "users" {
 		return userRoute(method, segments)
 	}
+	if resource == "notifications" {
+		if len(segments) == 3 && method == "GET" {
+			return readRoute("listNotifications", TaskService, true), true
+		}
+		if (len(segments) == 4 && segments[3] == "read" || len(segments) == 5 && segments[4] == "read") && method == "POST" {
+			return writeRoute("markNotificationsRead", TaskService, true, 120), true
+		}
+	}
+	if resource == "notification-preferences" && len(segments) == 3 && (method == "GET" || method == "PUT") {
+		if method == "GET" {
+			return readRoute("getNotificationPreferences", TaskService, true), true
+		}
+		return writeRoute("updateNotificationPreferences", TaskService, true, 60), true
+	}
 	if resource == "invitations" && len(segments) == 4 && segments[3] == "accept" && method == "POST" {
 		return writeRoute("acceptInvitation", TaskService, true, 30), true
 	}

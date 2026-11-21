@@ -88,6 +88,28 @@ export interface ActivityPage {
   nextCursor?: string
 }
 
+export interface NotificationRecord {
+  id: string
+  workspaceId: string
+  taskId: string
+  actorId: string
+  type: string
+  message: string
+  readAt?: string
+  createdAt: string
+}
+
+export interface NotificationList {
+  notifications: NotificationRecord[]
+}
+
+export interface NotificationPreferences {
+  userId: string
+  mentions: boolean
+  taskUpdates: boolean
+  emailEnabled: boolean
+}
+
 export interface MessageResponse {
   message: string
 }

@@ -242,3 +242,23 @@ type OutboxEvent struct {
 	CreatedAt   time.Time          `bson:"createdAt"`
 	PublishedAt *time.Time         `bson:"publishedAt,omitempty"`
 }
+
+type Notification struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
+	TaskID      primitive.ObjectID `json:"taskId" bson:"taskId"`
+	UserID      string             `json:"userId" bson:"userId"`
+	ActorID     string             `json:"actorId" bson:"actorId"`
+	Type        string             `json:"type" bson:"type"`
+	Message     string             `json:"message" bson:"message"`
+	SourceKey   string             `json:"-" bson:"sourceKey"`
+	ReadAt      *time.Time         `json:"readAt,omitempty" bson:"readAt,omitempty"`
+	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
+}
+
+type NotificationPreferences struct {
+	UserID       string `json:"userId" bson:"_id"`
+	Mentions     bool   `json:"mentions" bson:"mentions"`
+	TaskUpdates  bool   `json:"taskUpdates" bson:"taskUpdates"`
+	EmailEnabled bool   `json:"emailEnabled" bson:"emailEnabled"`
+}

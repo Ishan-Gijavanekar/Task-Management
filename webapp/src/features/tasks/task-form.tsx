@@ -56,7 +56,7 @@ export function TaskForm({
         )
       })
     onSubmit({
-      projectId: String(data.get('projectId')),
+      ...(!task && { projectId: String(data.get('projectId')) }),
       title: String(data.get('title')).trim(),
       description: String(data.get('description')).trim(),
       status: task ? String(data.get('status')) : undefined,

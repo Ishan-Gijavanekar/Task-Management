@@ -204,6 +204,7 @@ select:focus {
   padding: 0.65rem;
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: var(--radius-sm);
+  color: #fff;
   background: rgb(255 255 255 / 4%);
 }
 .workspace-switcher:hover {

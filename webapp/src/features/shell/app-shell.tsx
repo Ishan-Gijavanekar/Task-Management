@@ -118,7 +118,9 @@ function Shell() {
             {user?.name.slice(0, 2).toUpperCase()}
           </span>
         </header>
-        <Outlet />
+        <main>
+          <Outlet />
+        </main>
       </div>
     </div>
   )

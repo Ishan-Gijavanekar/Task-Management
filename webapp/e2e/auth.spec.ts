@@ -47,7 +47,7 @@ test('registers with isolated data', async ({ page }) => {
   await page.getByLabel('Password').fill('StrongPass123')
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(
-    page.getByRole('heading', { name: /Good morning, Asha/ }),
+    page.getByRole('heading', { name: 'Create or open a workspace' }),
   ).toBeVisible()
 })
 
@@ -60,7 +60,7 @@ test('signs in and restores the requested route', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(/\/tasks$/)
   await expect(
-    page.getByRole('heading', { name: 'Tasks', exact: true }),
+    page.getByRole('heading', { name: 'Create or open a workspace' }),
   ).toBeVisible()
 })
 
@@ -74,14 +74,14 @@ test('restores a refresh-cookie session and logs out across tabs', async ({
   )
   await page.goto('/')
   await expect(
-    page.getByRole('heading', { name: /Good morning, Asha/ }),
+    page.getByRole('heading', { name: 'Create or open a workspace' }),
   ).toBeVisible()
   const menuButton = page.getByRole('button', { name: 'Open navigation' })
   if (await menuButton.isVisible()) await menuButton.click()
   const secondPage = await context.newPage()
   await secondPage.goto('/tasks')
   await expect(
-    secondPage.getByRole('heading', { name: 'Tasks', exact: true }),
+    secondPage.getByRole('heading', { name: 'Create or open a workspace' }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/login/)

@@ -19,11 +19,13 @@ type memoryRepo struct {
 	workspaces map[primitive.ObjectID]*domain.Workspace
 	keys       map[string]*repository.Idempotency
 	events     int
+	comments   map[primitive.ObjectID]*domain.Comment
+	activities []*domain.ActivityEvent
 }
 
 func newMemory(w primitive.ObjectID, actor string) *memoryRepo {
 	projectID, _ := primitive.ObjectIDFromHex("000000000000000000000001")
-	return &memoryRepo{tasks: map[primitive.ObjectID]*domain.Task{}, members: map[string]domain.WorkspaceRole{w.Hex() + actor: domain.RoleMember}, projects: map[primitive.ObjectID]*domain.Project{projectID: {ID: projectID, WorkspaceID: w, Visibility: domain.ProjectWorkspace}}, workspaces: map[primitive.ObjectID]*domain.Workspace{w: {ID: w}}, keys: map[string]*repository.Idempotency{}}
+	return &memoryRepo{tasks: map[primitive.ObjectID]*domain.Task{}, members: map[string]domain.WorkspaceRole{w.Hex() + actor: domain.RoleMember}, projects: map[primitive.ObjectID]*domain.Project{projectID: {ID: projectID, WorkspaceID: w, Visibility: domain.ProjectWorkspace}}, workspaces: map[primitive.ObjectID]*domain.Workspace{w: {ID: w}}, keys: map[string]*repository.Idempotency{}, comments: map[primitive.ObjectID]*domain.Comment{}}
 }
 func (m *memoryRepo) Apply(_ context.Context, x repository.Mutation) (*domain.Task, error) {
 	if x.Idempotency != nil {
@@ -129,6 +131,52 @@ func (m *memoryRepo) GetMembership(_ context.Context, w primitive.ObjectID, a st
 }
 func (m *memoryRepo) LabelsExist(_ context.Context, _ primitive.ObjectID, _ []primitive.ObjectID) (bool, error) {
 	return true, nil
+}
+func (m *memoryRepo) CreateComment(_ context.Context, comment *domain.Comment, activity *domain.ActivityEvent, _ *domain.OutboxEvent) error {
+	m.comments[comment.ID] = comment
+	m.activities = append(m.activities, activity)
+	return nil
+}
+func (m *memoryRepo) UpdateComment(_ context.Context, comment *domain.Comment, expected int64, activity *domain.ActivityEvent, _ *domain.OutboxEvent) error {
+	old := m.comments[comment.ID]
+	if old == nil || old.Version != expected {
+		return domain.ErrConflict
+	}
+	m.comments[comment.ID] = comment
+	m.activities = append(m.activities, activity)
+	return nil
+}
+func (m *memoryRepo) GetComment(_ context.Context, workspaceID, taskID, commentID primitive.ObjectID) (*domain.Comment, error) {
+	comment := m.comments[commentID]
+	if comment == nil || comment.WorkspaceID != workspaceID || comment.TaskID != taskID {
+		return nil, domain.ErrNotFound
+	}
+	copy := *comment
+	return &copy, nil
+}
+func (m *memoryRepo) ListComments(_ context.Context, workspaceID, taskID primitive.ObjectID, _ *primitive.ObjectID, limit int64) ([]*domain.Comment, error) {
+	var out []*domain.Comment
+	for _, comment := range m.comments {
+		if comment.WorkspaceID == workspaceID && comment.TaskID == taskID && comment.DeletedAt == nil {
+			out = append(out, comment)
+		}
+	}
+	if int64(len(out)) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+func (m *memoryRepo) ListActivities(_ context.Context, workspaceID, taskID primitive.ObjectID, _ *primitive.ObjectID, limit int64) ([]*domain.ActivityEvent, error) {
+	var out []*domain.ActivityEvent
+	for _, activity := range m.activities {
+		if activity.WorkspaceID == workspaceID && activity.TaskID == taskID {
+			out = append(out, activity)
+		}
+	}
+	if int64(len(out)) > limit {
+		out = out[:limit]
+	}
+	return out, nil
 }
 func (m *memoryRepo) GetWorkspace(_ context.Context, w primitive.ObjectID, _ bool) (*domain.Workspace, error) {
 	x := m.workspaces[w]

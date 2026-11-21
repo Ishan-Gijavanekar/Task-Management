@@ -57,6 +57,11 @@ type TaskRepository interface {
 	ListProjects(context.Context, primitive.ObjectID, bool) ([]*domain.Project, error)
 	DependencyPathExists(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (bool, error)
 	LabelsExist(context.Context, primitive.ObjectID, []primitive.ObjectID) (bool, error)
+	CreateComment(context.Context, *domain.Comment, *domain.ActivityEvent, *domain.OutboxEvent) error
+	UpdateComment(context.Context, *domain.Comment, int64, *domain.ActivityEvent, *domain.OutboxEvent) error
+	GetComment(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (*domain.Comment, error)
+	ListComments(context.Context, primitive.ObjectID, primitive.ObjectID, *primitive.ObjectID, int64) ([]*domain.Comment, error)
+	ListActivities(context.Context, primitive.ObjectID, primitive.ObjectID, *primitive.ObjectID, int64) ([]*domain.ActivityEvent, error)
 	Ping(context.Context) error
 }
 

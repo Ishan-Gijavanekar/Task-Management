@@ -35,6 +35,11 @@ func (h *Handler) Register(r fiber.Router) {
 	r.Post("/workspaces/:workspaceId/tasks/:id/restore", h.restore)
 	r.Post("/workspaces/:workspaceId/tasks/:id/reorder", h.reorder)
 	r.Patch("/workspaces/:workspaceId/tasks:batch", h.batch)
+	r.Post("/workspaces/:workspaceId/tasks/:id/comments", h.createComment)
+	r.Get("/workspaces/:workspaceId/tasks/:id/comments", h.listComments)
+	r.Patch("/workspaces/:workspaceId/tasks/:id/comments/:commentId", h.updateComment)
+	r.Delete("/workspaces/:workspaceId/tasks/:id/comments/:commentId", h.deleteComment)
+	r.Get("/workspaces/:workspaceId/tasks/:id/activities", h.listActivities)
 }
 func actor(c *fiber.Ctx) string { id, _ := c.Locals("actorId").(string); return id }
 func key(c *fiber.Ctx) string   { return strings.TrimSpace(c.Get("Idempotency-Key")) }

@@ -2,6 +2,9 @@ import { ApiError, mapApiError } from './errors'
 import { tokenStore } from './token-store'
 import type {
   AuthResponse,
+  ActivityPage,
+  CommentPage,
+  CommentRecord,
   Label,
   LabelList,
   CreateProjectRequest,
@@ -257,6 +260,30 @@ export const api = {
       body: { version },
       headers: { 'Idempotency-Key': idempotencyKey },
     }),
+  listComments: (workspaceId: string, taskId: string, signal?: AbortSignal) =>
+    request<CommentPage>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/comments?limit=100`,
+      { signal: signal ?? null },
+    ).then((result) => ({ ...result, comments: result.comments ?? [] })),
+  createComment: (
+    workspaceId: string,
+    taskId: string,
+    body: string,
+    mentionIds: string[],
+  ) =>
+    request<CommentRecord>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/comments`,
+      { method: 'POST', body: { body, mentionIds } },
+    ),
+  listActivities: (
+    workspaceId: string,
+    taskId: string,
+    signal?: AbortSignal,
+  ) =>
+    request<ActivityPage>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/activities?limit=100`,
+      { signal: signal ?? null },
+    ).then((result) => ({ ...result, activities: result.activities ?? [] })),
 }
 
 export function shouldRetry(failureCount: number, error: unknown) {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { api } from '../../api/client'
 import { ApiError, errorMessage } from '../../api/errors'
 import type { Label, Membership, Project, TaskRecord } from '../../api/types'
@@ -38,6 +38,14 @@ export function TaskDetail({
   const task = useQuery({
     queryKey: ['task', workspaceId, taskId],
     queryFn: ({ signal }) => api.getTask(workspaceId, taskId, true, signal),
+  })
+  const comments = useQuery({
+    queryKey: ['comments', workspaceId, taskId],
+    queryFn: ({ signal }) => api.listComments(workspaceId, taskId, signal),
+  })
+  const activities = useQuery({
+    queryKey: ['activities', workspaceId, taskId],
+    queryFn: ({ signal }) => api.listActivities(workspaceId, taskId, signal),
   })
 
   const refreshLists = async () => {
@@ -86,6 +94,32 @@ export function TaskDetail({
     },
     onError: (cause) => setError(errorMessage(cause)),
   })
+  const comment = useMutation({
+    mutationFn: ({ body, mentionIds }: { body: string; mentionIds: string[] }) =>
+      api.createComment(workspaceId, taskId, body, mentionIds),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['comments', workspaceId, taskId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['activities', workspaceId, taskId],
+        }),
+      ])
+    },
+    onError: (cause) => setError(errorMessage(cause)),
+  })
+
+  function addComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    comment.mutate({
+      body: String(data.get('body')),
+      mentionIds: data.getAll('mentionIds').map(String),
+    })
+    form.reset()
+  }
 
   async function applyLatest() {
     if (!conflictInput) return
@@ -285,6 +319,75 @@ export function TaskDetail({
                 </div>
               </section>
             ) : null}
+            <section className="collaboration-section">
+              <h3>Comments</h3>
+              {comments.data?.comments.length ? (
+                <div className="comment-list">
+                  {comments.data.comments.map((item) => (
+                    <article key={item.id}>
+                      <div>
+                        <strong>
+                          {members.find(
+                            (member) => member.userId === item.authorId,
+                          )?.userName ?? item.authorId}
+                        </strong>
+                        <time dateTime={item.createdAt}>
+                          {new Intl.DateTimeFormat(undefined, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          }).format(new Date(item.createdAt))}
+                        </time>
+                      </div>
+                      <p>{item.body}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">No comments yet.</p>
+              )}
+              {canWrite && (
+                <form className="comment-form" onSubmit={addComment}>
+                  <label className="field">
+                    <span>Add a comment</span>
+                    <textarea name="body" maxLength={10000} required />
+                  </label>
+                  <label className="field">
+                    <span>Mention teammates</span>
+                    <select name="mentionIds" multiple>
+                      {members
+                        .filter((member) => member.status === 'active')
+                        .map((member) => (
+                          <option key={member.userId} value={member.userId}>
+                            {member.userName || member.userId}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <button
+                    className="button primary"
+                    type="submit"
+                    disabled={comment.isPending}
+                  >
+                    {comment.isPending ? 'Posting…' : 'Post comment'}
+                  </button>
+                </form>
+              )}
+            </section>
+            <section className="collaboration-section">
+              <h3>Activity</h3>
+              <div className="activity-list">
+                {activities.data?.activities.map((item) => (
+                  <div key={item.id}>
+                    <span>{item.type.replaceAll('.', ' ')}</span>
+                    <time dateTime={item.createdAt}>
+                      {new Intl.DateTimeFormat().format(
+                        new Date(item.createdAt),
+                      )}
+                    </time>
+                  </div>
+                ))}
+              </div>
+            </section>
             <div className="dialog-actions split">
               {canWrite &&
                 (current.deletedAt ? (

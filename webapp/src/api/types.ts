@@ -57,6 +57,37 @@ export interface LabelList {
   labels: import('../../../gateway-service/api/generated').Label[]
 }
 
+export interface CommentRecord {
+  id: string
+  workspaceId: string
+  taskId: string
+  authorId: string
+  body: string
+  mentionIds?: string[]
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CommentPage {
+  comments: CommentRecord[]
+  nextCursor?: string
+}
+
+export interface ActivityRecord {
+  id: string
+  taskId: string
+  actorId: string
+  type: string
+  version: number
+  createdAt: string
+}
+
+export interface ActivityPage {
+  activities: ActivityRecord[]
+  nextCursor?: string
+}
+
 export interface MessageResponse {
   message: string
 }

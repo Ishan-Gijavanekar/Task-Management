@@ -4,6 +4,21 @@ export interface AcceptInvitationRequest {
   token: string;
 }
 
+export interface Activity {
+  actorId: string;
+  changes?: Record<string, unknown>;
+  createdAt: string;
+  id: string;
+  taskId: string;
+  type: string;
+  version: number;
+}
+
+export interface ActivityList {
+  activities: (Activity)[];
+  nextCursor?: string;
+}
+
 export interface AuditEvent {
   action: string;
   actorId: string;
@@ -38,6 +53,28 @@ export interface ChecklistItem {
   done: boolean;
   id: string;
   text: string;
+}
+
+export interface Comment {
+  authorId: string;
+  body: string;
+  createdAt: string;
+  id: string;
+  mentionIds?: (string)[];
+  taskId: string;
+  updatedAt: string;
+  version: number;
+  workspaceId: string;
+}
+
+export interface CommentList {
+  comments: (Comment)[];
+  nextCursor?: string;
+}
+
+export interface CreateCommentRequest {
+  body: string;
+  mentionIds?: (string)[];
 }
 
 export interface CreateLabelRequest {
@@ -205,6 +242,8 @@ export interface TransferWorkspaceRequest {
   version: number;
 }
 
+export type UpdateCommentRequest = unknown;
+
 export interface UpdateMemberRequest {
   role: "admin" | "member" | "viewer";
   status: "active" | "suspended";
@@ -285,8 +324,10 @@ export const apiOperations = {
   createLabel: { method: "POST", path: "/workspaces/{workspaceId}/labels" },
   createProject: { method: "POST", path: "/workspaces/{workspaceId}/projects" },
   createTask: { method: "POST", path: "/workspaces/{workspaceId}/tasks" },
+  createTaskComment: { method: "POST", path: "/workspaces/{workspaceId}/tasks/{taskId}/comments" },
   createWorkspace: { method: "POST", path: "/workspaces" },
   deleteLabel: { method: "DELETE", path: "/workspaces/{workspaceId}/labels/{labelId}" },
+  deleteTaskComment: { method: "DELETE", path: "/workspaces/{workspaceId}/tasks/{taskId}/comments/{commentId}" },
   deleteUser: { method: "DELETE", path: "/users/{userId}" },
   forgotPassword: { method: "POST", path: "/auth/forgot-password" },
   getCurrentUser: { method: "GET", path: "/me" },
@@ -297,6 +338,8 @@ export const apiOperations = {
   inviteWorkspaceMember: { method: "POST", path: "/workspaces/{workspaceId}/invitations" },
   listLabels: { method: "GET", path: "/workspaces/{workspaceId}/labels" },
   listProjects: { method: "GET", path: "/workspaces/{workspaceId}/projects" },
+  listTaskActivities: { method: "GET", path: "/workspaces/{workspaceId}/tasks/{taskId}/activities" },
+  listTaskComments: { method: "GET", path: "/workspaces/{workspaceId}/tasks/{taskId}/comments" },
   listTasks: { method: "GET", path: "/workspaces/{workspaceId}/tasks" },
   listUsers: { method: "GET", path: "/users" },
   listWorkspaceAuditEvents: { method: "GET", path: "/workspaces/{workspaceId}/audit-events" },
@@ -315,6 +358,7 @@ export const apiOperations = {
   transferWorkspaceOwnership: { method: "POST", path: "/workspaces/{workspaceId}/transfer" },
   updateProject: { method: "PATCH", path: "/workspaces/{workspaceId}/projects/{projectId}" },
   updateTask: { method: "PATCH", path: "/workspaces/{workspaceId}/tasks/{taskId}" },
+  updateTaskComment: { method: "PATCH", path: "/workspaces/{workspaceId}/tasks/{taskId}/comments/{commentId}" },
   updateUser: { method: "PUT", path: "/users/{userId}" },
   updateWorkspace: { method: "PATCH", path: "/workspaces/{workspaceId}" },
   updateWorkspaceMember: { method: "PATCH", path: "/workspaces/{workspaceId}/members/{userId}" },

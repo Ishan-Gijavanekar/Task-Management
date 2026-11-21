@@ -371,6 +371,50 @@
 .tag-list span {
   border: 1px solid transparent;
 }
+.collaboration-section {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.comment-list,
+.activity-list {
+  display: grid;
+  gap: 0.65rem;
+}
+.comment-list article {
+  padding: 0.8rem;
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.comment-list article > div,
+.activity-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.comment-list time,
+.activity-list time {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+}
+.comment-list p {
+  margin: 0.45rem 0 0;
+  white-space: pre-wrap;
+}
+.comment-form {
+  display: grid;
+  gap: 0.75rem;
+}
+.comment-form select[multiple] {
+  min-height: 82px;
+}
+.comment-form .button {
+  justify-self: end;
+}
+.muted {
+  color: var(--ink-soft);
+}
 .search-field input {
   min-height: 38px;
   padding-left: 0;

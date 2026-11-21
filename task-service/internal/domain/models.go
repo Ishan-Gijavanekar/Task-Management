@@ -219,3 +219,26 @@ type ActivityEvent struct {
 	Changes     map[string]any     `json:"changes,omitempty" bson:"changes,omitempty"`
 	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
 }
+
+type Comment struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
+	TaskID      primitive.ObjectID `json:"taskId" bson:"taskId"`
+	AuthorID    string             `json:"authorId" bson:"authorId"`
+	Body        string             `json:"body" bson:"body"`
+	MentionIDs  []string           `json:"mentionIds,omitempty" bson:"mentionIds,omitempty"`
+	Version     int64              `json:"version" bson:"version"`
+	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
+	UpdatedAt   time.Time          `json:"updatedAt" bson:"updatedAt"`
+	DeletedAt   *time.Time         `json:"deletedAt,omitempty" bson:"deletedAt,omitempty"`
+}
+
+type OutboxEvent struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	WorkspaceID primitive.ObjectID `bson:"workspaceId"`
+	TaskID      primitive.ObjectID `bson:"taskId"`
+	Type        string             `bson:"type"`
+	Payload     map[string]any     `bson:"payload"`
+	CreatedAt   time.Time          `bson:"createdAt"`
+	PublishedAt *time.Time         `bson:"publishedAt,omitempty"`
+}

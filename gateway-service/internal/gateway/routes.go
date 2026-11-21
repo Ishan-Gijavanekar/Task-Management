@@ -151,6 +151,15 @@ func workspaceRoute(method string, s []string) (Route, bool) {
 				if len(s) == 7 && (s[6] == "restore" || s[6] == "reorder") && method == "POST" {
 					return writeRoute("task."+s[6], TaskService, true, 120), true
 				}
+				if len(s) == 7 && (s[6] == "comments" || s[6] == "activities") && method == "GET" {
+					return readRoute("task."+s[6], TaskService, true), true
+				}
+				if len(s) == 7 && s[6] == "comments" && method == "POST" {
+					return writeRoute("createComment", TaskService, true, 120), true
+				}
+				if len(s) == 8 && s[6] == "comments" && (method == "PATCH" || method == "DELETE") {
+					return writeRoute("mutateComment", TaskService, true, 120), true
+				}
 			}
 		}
 	}

@@ -8,6 +8,29 @@ permissions:
   contents: read
 
 jobs:
+  webapp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm test
+      - name: Build and enforce bundle budgets
+        run: npm run build
+      - name: Install browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: Run desktop and mobile authentication journeys
+        run: npm run test:e2e
+
   gateway-service:
     runs-on: ubuntu-latest
     defaults:

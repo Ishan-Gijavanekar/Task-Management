@@ -121,7 +121,8 @@ export const api = {
       signal: signal ?? null,
       skipRefresh: true,
     }),
-  me: (signal?: AbortSignal) => request<User>('/me', { signal: signal ?? null }),
+  me: (signal?: AbortSignal) =>
+    request<User>('/me', { signal: signal ?? null }),
   getWorkspace: (id: string, signal?: AbortSignal) =>
     request<Workspace>(`/workspaces/${id}`, { signal: signal ?? null }),
 }

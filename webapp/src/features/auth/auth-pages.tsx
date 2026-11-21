@@ -95,7 +95,7 @@ export function LoginPage() {
           autoComplete="email"
         />
         <div className="field-heading">
-          <span>Password</span>
+          <label htmlFor="password">Password</label>
           <Link to="/forgot-password">Forgot password?</Link>
         </div>
         <input
@@ -302,9 +302,13 @@ export function ResetPasswordPage() {
 export function VerifyEmailPage() {
   const [search] = useSearchParams()
   const token = search.get('token')
-  const [state, setState] = useState<'working' | 'success' | 'error'>(token ? 'working' : 'error')
+  const [state, setState] = useState<'working' | 'success' | 'error'>(
+    token ? 'working' : 'error',
+  )
   const [message, setMessage] = useState(
-    token ? 'Verifying your email…' : 'This verification link is missing its secure token.',
+    token
+      ? 'Verifying your email…'
+      : 'This verification link is missing its secure token.',
   )
 
   useEffect(() => {

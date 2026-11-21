@@ -1,4 +1,4 @@
-import { ModulePage } from '../workspaces/workspaces-page'
+import { ModulePage } from '../../ui/module-page'
 export function NotificationsPage() {
   return (
     <ModulePage

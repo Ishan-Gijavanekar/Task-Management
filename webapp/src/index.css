@@ -40,7 +40,9 @@ body {
   margin: 0;
 }
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 button,
@@ -126,6 +128,27 @@ h3 {
   color: var(--ink);
   background: #fff;
   border-color: var(--line);
+}
+.button.danger {
+  color: #8c2e2c;
+  background: #fff0ef;
+  border-color: #f4c9c6;
+}
+.button.compact {
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+.muted {
+  color: var(--ink-soft);
+}
+.sr-only {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 .button.full {
   width: 100%;

@@ -2,9 +2,18 @@ import { ApiError, mapApiError } from './errors'
 import { tokenStore } from './token-store'
 import type {
   AuthResponse,
+  CreateProjectRequest,
+  CreateWorkspaceRequest,
   LoginRequest,
+  MemberList,
   MessageResponse,
+  Project,
+  ProjectList,
   RegisterRequest,
+  TaskPage,
+  TaskRecord,
+  UpdateProjectRequest,
+  UpdateWorkspaceRequest,
   User,
   Workspace,
 } from './types'
@@ -125,6 +134,118 @@ export const api = {
     request<User>('/me', { signal: signal ?? null }),
   getWorkspace: (id: string, signal?: AbortSignal) =>
     request<Workspace>(`/workspaces/${id}`, { signal: signal ?? null }),
+  createWorkspace: (input: CreateWorkspaceRequest, signal?: AbortSignal) =>
+    request<Workspace>('/workspaces', {
+      method: 'POST',
+      body: input,
+      signal: signal ?? null,
+    }),
+  updateWorkspace: (
+    id: string,
+    input: UpdateWorkspaceRequest,
+    signal?: AbortSignal,
+  ) =>
+    request<Workspace>(`/workspaces/${id}`, {
+      method: 'PATCH',
+      body: input,
+      signal: signal ?? null,
+    }),
+  listProjects: (workspaceId: string, signal?: AbortSignal) =>
+    request<ProjectList>(`/workspaces/${workspaceId}/projects`, {
+      signal: signal ?? null,
+    }),
+  getProject: (workspaceId: string, projectId: string, signal?: AbortSignal) =>
+    request<Project>(`/workspaces/${workspaceId}/projects/${projectId}`, {
+      signal: signal ?? null,
+    }),
+  createProject: (
+    workspaceId: string,
+    input: CreateProjectRequest,
+    signal?: AbortSignal,
+  ) =>
+    request<Project>(`/workspaces/${workspaceId}/projects`, {
+      method: 'POST',
+      body: input,
+      signal: signal ?? null,
+    }),
+  updateProject: (
+    workspaceId: string,
+    projectId: string,
+    input: UpdateProjectRequest,
+    signal?: AbortSignal,
+  ) =>
+    request<Project>(`/workspaces/${workspaceId}/projects/${projectId}`, {
+      method: 'PATCH',
+      body: input,
+      signal: signal ?? null,
+    }),
+  listMembers: (workspaceId: string, signal?: AbortSignal) =>
+    request<MemberList>(`/workspaces/${workspaceId}/members`, {
+      signal: signal ?? null,
+    }),
+  listTasks: (
+    workspaceId: string,
+    search: URLSearchParams,
+    signal?: AbortSignal,
+  ) =>
+    request<TaskPage>(`/workspaces/${workspaceId}/tasks?${search.toString()}`, {
+      signal: signal ?? null,
+    }),
+  getTask: (
+    workspaceId: string,
+    taskId: string,
+    includeDeleted = false,
+    signal?: AbortSignal,
+  ) =>
+    request<TaskRecord>(
+      `/workspaces/${workspaceId}/tasks/${taskId}?includeDeleted=${includeDeleted}`,
+      { signal: signal ?? null },
+    ),
+  createTask: (
+    workspaceId: string,
+    input: Record<string, unknown>,
+    idempotencyKey: string,
+  ) =>
+    request<TaskRecord>(`/workspaces/${workspaceId}/tasks`, {
+      method: 'POST',
+      body: input,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+  updateTask: (
+    workspaceId: string,
+    taskId: string,
+    input: Record<string, unknown>,
+    idempotencyKey: string,
+  ) =>
+    request<TaskRecord>(`/workspaces/${workspaceId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: input,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+  archiveTask: (
+    workspaceId: string,
+    taskId: string,
+    version: number,
+    idempotencyKey: string,
+  ) =>
+    request<void>(
+      `/workspaces/${workspaceId}/tasks/${taskId}?version=${version}`,
+      {
+        method: 'DELETE',
+        headers: { 'Idempotency-Key': idempotencyKey },
+      },
+    ),
+  restoreTask: (
+    workspaceId: string,
+    taskId: string,
+    version: number,
+    idempotencyKey: string,
+  ) =>
+    request<TaskRecord>(`/workspaces/${workspaceId}/tasks/${taskId}/restore`, {
+      method: 'POST',
+      body: { version },
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
 }
 
 export function shouldRetry(failureCount: number, error: unknown) {

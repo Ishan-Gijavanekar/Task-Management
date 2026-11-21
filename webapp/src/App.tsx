@@ -17,7 +17,9 @@ import { SettingsPage } from './features/settings/settings-page'
 import { AppShell } from './features/shell/app-shell'
 import { TasksPage } from './features/tasks/tasks-page'
 import { WorkspacesPage } from './features/workspaces/workspaces-page'
+import { WorkspaceGate } from './features/workspaces/workspace-gate'
 import './App.css'
+import './Phase14.css'
 
 export default function App() {
   return (
@@ -37,11 +39,39 @@ export default function App() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
-          <Route index element={<DashboardPage />} />
+          <Route
+            index
+            element={
+              <WorkspaceGate>
+                <DashboardPage />
+              </WorkspaceGate>
+            }
+          />
           <Route path="workspaces" element={<WorkspacesPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="tasks/*" element={<TasksPage />} />
-          <Route path="members" element={<MembersPage />} />
+          <Route
+            path="projects/*"
+            element={
+              <WorkspaceGate>
+                <ProjectsPage />
+              </WorkspaceGate>
+            }
+          />
+          <Route
+            path="tasks/*"
+            element={
+              <WorkspaceGate>
+                <TasksPage />
+              </WorkspaceGate>
+            }
+          />
+          <Route
+            path="members"
+            element={
+              <WorkspaceGate>
+                <MembersPage />
+              </WorkspaceGate>
+            }
+          />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

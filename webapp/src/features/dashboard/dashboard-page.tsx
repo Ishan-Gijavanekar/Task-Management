@@ -1,30 +1,45 @@
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../../api/client'
 import { useAuth } from '../auth/auth-context'
-
-const work = [
-  {
-    title: 'Website refresh',
-    project: 'Marketing',
-    status: 'In progress',
-    tone: 'coral',
-  },
-  {
-    title: 'Mobile onboarding',
-    project: 'Product',
-    status: 'Review',
-    tone: 'violet',
-  },
-  { title: 'Q4 planning', project: 'Operations', status: 'Todo', tone: 'blue' },
-]
+import { useWorkspace } from '../workspaces/workspace-context'
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const { workspace } = useWorkspace()
+  const [now] = useState(Date.now)
   const firstName = user?.name.split(' ')[0] || 'there'
+  const projects = useQuery({
+    queryKey: ['projects', workspace!.id],
+    queryFn: ({ signal }) => api.listProjects(workspace!.id, signal),
+  })
+  const tasks = useQuery({
+    queryKey: ['tasks', workspace!.id, 'overview'],
+    queryFn: ({ signal }) =>
+      api.listTasks(
+        workspace!.id,
+        new URLSearchParams({ limit: '50' }),
+        signal,
+      ),
+  })
   const today = new Intl.DateTimeFormat(undefined, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   }).format(new Date())
+  const items = tasks.data?.tasks ?? []
+  const done = items.filter((task) => task.status === 'done').length
+  const active = items.filter((task) =>
+    ['in_progress', 'blocked'].includes(task.status),
+  ).length
+  const dueSoon = items.filter(
+    (task) =>
+      task.dueDate &&
+      new Date(task.dueDate).getTime() < now + 3 * 86_400_000 &&
+      task.status !== 'done',
+  ).length
+  const completion = items.length ? Math.round((done / items.length) * 100) : 0
 
   return (
     <div className="page dashboard-page">
@@ -32,25 +47,22 @@ export function DashboardPage() {
         <div>
           <p className="eyebrow">{today}</p>
           <h1>Good morning, {firstName}.</h1>
-          <p>Here’s the shape of your team’s work today.</p>
+          <p>Here’s the shape of {workspace!.name} today.</p>
         </div>
-        <Link className="button primary" to="/tasks/new">
-          <span aria-hidden="true">＋</span> New task
+        <Link className="button primary" to="/tasks">
+          View tasks
         </Link>
       </header>
-
       <section className="metric-grid" aria-label="Work overview">
         <article className="metric-card featured">
           <div>
             <span className="metric-icon coral" aria-hidden="true">
               ↗
             </span>
-            <span>This week</span>
+            <span>Completed</span>
           </div>
-          <strong>24</strong>
-          <p>
-            tasks completed <span className="positive">+18%</span>
-          </p>
+          <strong>{done}</strong>
+          <p>of {items.length} loaded tasks</p>
           <div className="mini-bars" aria-hidden="true">
             {[35, 52, 45, 72, 58, 88, 68].map((height, index) => (
               <i key={index} style={{ height: `${height}%` }} />
@@ -62,10 +74,10 @@ export function DashboardPage() {
             <span className="metric-icon blue" aria-hidden="true">
               ◎
             </span>
-            <span>In progress</span>
+            <span>In motion</span>
           </div>
-          <strong>8</strong>
-          <p>across 3 projects</p>
+          <strong>{active}</strong>
+          <p>active or blocked</p>
         </article>
         <article className="metric-card">
           <div>
@@ -74,11 +86,10 @@ export function DashboardPage() {
             </span>
             <span>Due soon</span>
           </div>
-          <strong>5</strong>
+          <strong>{dueSoon}</strong>
           <p>in the next 3 days</p>
         </article>
       </section>
-
       <div className="dashboard-grid">
         <section className="panel" aria-labelledby="focus-heading">
           <div className="panel-heading">
@@ -89,31 +100,36 @@ export function DashboardPage() {
             <Link to="/tasks">View all</Link>
           </div>
           <div className="work-list">
-            {work.map((item) => (
-              <article className="work-row" key={item.title}>
-                <span
-                  className={`project-mark ${item.tone}`}
-                  aria-hidden="true"
-                />
+            {items.slice(0, 4).map((task) => (
+              <article className="work-row" key={task.id}>
+                <span className="project-mark coral" aria-hidden="true" />
                 <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.project}</p>
+                  <h3>{task.title}</h3>
+                  <p>
+                    {projects.data?.projects.find(
+                      (project) => project.id === task.projectId,
+                    )?.name ?? 'Project'}
+                  </p>
                 </div>
-                <span className={`status-chip ${item.tone}`}>
-                  {item.status}
+                <span className={`status-chip ${task.status}`}>
+                  {task.status.replace('_', ' ')}
                 </span>
-                <button
+                <Link
                   className="icon-button"
-                  type="button"
-                  aria-label={`More options for ${item.title}`}
+                  aria-label={`Open ${task.title}`}
+                  to={`/tasks?task=${task.id}`}
                 >
-                  •••
-                </button>
+                  →
+                </Link>
               </article>
             ))}
+            {!items.length && (
+              <p className="muted">
+                No tasks yet. Create a project, then add the first task.
+              </p>
+            )}
           </div>
         </section>
-
         <section className="panel momentum" aria-labelledby="momentum-heading">
           <div className="panel-heading">
             <div>
@@ -124,24 +140,27 @@ export function DashboardPage() {
           </div>
           <div
             className="donut"
-            aria-label="74 percent of weekly work complete"
+            style={{
+              background: `conic-gradient(var(--brand) 0 ${completion}%, #edf0ed ${completion}%)`,
+            }}
+            aria-label={`${completion} percent of loaded work complete`}
           >
             <span>
-              74%<small>complete</small>
+              {completion}%<small>complete</small>
             </span>
           </div>
           <div className="legend">
             <span>
               <i className="coral" />
-              Done 24
+              Done {done}
             </span>
             <span>
               <i className="blue" />
-              Active 8
+              Active {active}
             </span>
             <span>
               <i className="muted" />
-              Planned 6
+              Total {items.length}
             </span>
           </div>
         </section>

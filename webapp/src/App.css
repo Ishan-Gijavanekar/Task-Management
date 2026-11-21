@@ -98,7 +98,9 @@
 .field-heading a {
   font-size: 0.82rem;
 }
-input {
+input,
+textarea,
+select {
   width: 100%;
   min-height: 46px;
   padding: 0.7rem 0.8rem;
@@ -107,10 +109,17 @@ input {
   border: 1px solid #d9ddd8;
   border-radius: var(--radius-sm);
 }
-input:hover {
+textarea {
+  resize: vertical;
+}
+input:hover,
+textarea:hover,
+select:hover {
   border-color: #afb8b0;
 }
-input:focus {
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--blue);
   outline: 3px solid rgb(79 120 223 / 12%);
 }
@@ -196,6 +205,11 @@ input:focus {
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: var(--radius-sm);
   background: rgb(255 255 255 / 4%);
+}
+.workspace-switcher:hover {
+  color: white;
+  background: rgb(255 255 255 / 8%);
+  text-decoration: none;
 }
 .workspace-switcher > span:nth-child(2) {
   min-width: 0;

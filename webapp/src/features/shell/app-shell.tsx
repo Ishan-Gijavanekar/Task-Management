@@ -3,6 +3,10 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { Brand } from '../../ui/brand'
 import { NetworkStatus } from '../../ui/network-status'
 import { useAuth } from '../auth/auth-context'
+import {
+  WorkspaceProvider,
+  useWorkspace,
+} from '../workspaces/workspace-context'
 
 const navItems = [
   ['/', 'Overview', '⌂'],
@@ -14,7 +18,16 @@ const navItems = [
 ] as const
 
 export function AppShell() {
+  return (
+    <WorkspaceProvider>
+      <Shell />
+    </WorkspaceProvider>
+  )
+}
+
+function Shell() {
   const { user, logout } = useAuth()
+  const { workspace } = useWorkspace()
   const [open, setOpen] = useState(false)
 
   return (
@@ -32,14 +45,20 @@ export function AppShell() {
             ×
           </button>
         </div>
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">A</span>
+        <NavLink
+          className="workspace-switcher"
+          to="/workspaces"
+          onClick={() => setOpen(false)}
+        >
+          <span className="workspace-avatar">
+            {workspace?.name.slice(0, 1).toUpperCase() ?? '+'}
+          </span>
           <span>
             <small>Workspace</small>
-            <strong>Acme Studio</strong>
+            <strong>{workspace?.name ?? 'Choose workspace'}</strong>
           </span>
           <span aria-hidden="true">⌄</span>
-        </div>
+        </NavLink>
         <nav aria-label="Primary navigation">
           {navItems.map(([to, label, icon]) => (
             <NavLink

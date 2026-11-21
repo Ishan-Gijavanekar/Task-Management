@@ -196,7 +196,10 @@ export function TaskDetail({
             <div className="detail-grid">
               <div>
                 <small>Assignee</small>
-                <strong>{current.assigneeId || 'Unassigned'}</strong>
+                <strong>
+                  {members.find((member) => member.userId === current.assigneeId)
+                    ?.userName || current.assigneeId || 'Unassigned'}
+                </strong>
               </div>
               <div>
                 <small>Estimate</small>

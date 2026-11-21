@@ -56,6 +56,7 @@ func (m *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID: user.ID.Hex(),
+		Name:   user.Name,
 		Email:  user.Email,
 		Role:   user.Role,
 

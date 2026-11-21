@@ -115,6 +115,7 @@ export interface Membership {
   role: "admin" | "member" | "owner" | "viewer";
   status: "active" | "suspended";
   userId: string;
+  userName: string;
   workspaceId: string;
 }
 

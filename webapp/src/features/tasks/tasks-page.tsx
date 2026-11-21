@@ -323,7 +323,7 @@ export function TaskExplorer({
             .filter((member) => member.status === 'active')
             .map((member) => (
               <option key={member.userId} value={member.userId}>
-                {member.userId}
+                {member.userName || member.userId}
               </option>
             ))}
         </select>
@@ -500,7 +500,11 @@ export function TaskExplorer({
                   ? new Intl.DateTimeFormat().format(new Date(task.dueDate))
                   : '—'}
               </span>
-              <span>{task.assigneeId || 'Unassigned'}</span>
+              <span>
+                {members.data?.members.find(
+                  (member) => member.userId === task.assigneeId,
+                )?.userName || task.assigneeId || 'Unassigned'}
+              </span>
             </button>
           ))}
         </div>

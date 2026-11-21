@@ -161,7 +161,7 @@ export function TaskForm({
               .filter((member) => member.status === 'active')
               .map((member) => (
                 <option key={member.userId} value={member.userId}>
-                  {member.userId}
+                  {member.userName || member.userId}
                 </option>
               ))}
           </select>

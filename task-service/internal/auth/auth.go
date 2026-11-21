@@ -15,6 +15,7 @@ import (
 
 type Claims struct {
 	UserID string `json:"user_id"`
+	Name   string `json:"name"`
 	jwt.RegisteredClaims
 }
 type Manager struct {
@@ -31,7 +32,7 @@ func New(keys map[string]string, issuer string) *Manager {
 	}
 	return &Manager{keys: parsed, issuer: issuer}
 }
-func (m *Manager) Validate(raw string) (string, error) {
+func (m *Manager) ValidateClaims(raw string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(raw, claims, func(t *jwt.Token) (any, error) {
 		if t.Method != jwt.SigningMethodHS256 {
@@ -45,7 +46,14 @@ func (m *Manager) Validate(raw string) (string, error) {
 		return key, nil
 	}, jwt.WithIssuer(m.issuer), jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil || !token.Valid || claims.UserID == "" || claims.Subject != claims.UserID {
-		return "", domain.ErrUnauthenticated
+		return nil, domain.ErrUnauthenticated
+	}
+	return claims, nil
+}
+func (m *Manager) Validate(raw string) (string, error) {
+	claims, err := m.ValidateClaims(raw)
+	if err != nil {
+		return "", err
 	}
 	return claims.UserID, nil
 }
@@ -75,11 +83,12 @@ func (m *Manager) Fiber() fiber.Handler {
 		if e != nil {
 			return c.Status(401).JSON(fiber.Map{"error": fiber.Map{"code": "unauthenticated", "message": "valid bearer token required", "requestId": c.GetRespHeader("X-Request-ID")}})
 		}
-		id, e := m.Validate(raw)
+		claims, e := m.ValidateClaims(raw)
 		if e != nil {
 			return c.Status(401).JSON(fiber.Map{"error": fiber.Map{"code": "unauthenticated", "message": "valid bearer token required"}})
 		}
-		c.Locals("actorId", id)
+		c.Locals("actorId", claims.UserID)
+		c.Locals("actorName", claims.Name)
 		return c.Next()
 	}
 }

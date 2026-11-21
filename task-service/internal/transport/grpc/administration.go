@@ -171,7 +171,7 @@ func (h *AdministrationHandler) AcceptInvitation(ctx context.Context, r *taskv1.
 	if e != nil {
 		return nil, e
 	}
-	out, e := h.s.AcceptInvitation(ctx, a, r.GetToken())
+	out, e := h.s.AcceptInvitation(ctx, a, "", r.GetToken())
 	if e != nil {
 		return nil, mapped(e)
 	}

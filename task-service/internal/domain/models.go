@@ -36,6 +36,7 @@ type Membership struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
 	UserID      string             `json:"userId" bson:"userId"`
+	UserName    string             `json:"userName" bson:"userName"`
 	Role        WorkspaceRole      `json:"role" bson:"role"`
 	Status      MembershipStatus   `json:"status" bson:"status"`
 	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`

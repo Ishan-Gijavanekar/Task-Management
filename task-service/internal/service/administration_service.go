@@ -38,7 +38,8 @@ func NewAdministration(repo repository.AdministrationRepository, identities Iden
 }
 
 type CreateWorkspaceInput struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	OwnerName string `json:"-"`
 }
 type UpdateWorkspaceInput struct {
 	Name    string `json:"name"`
@@ -82,7 +83,7 @@ func (s *AdministrationService) CreateWorkspace(ctx context.Context, actor strin
 	}
 	now := s.now().UTC()
 	w := &domain.Workspace{ID: primitive.NewObjectID(), Name: name, OwnerID: actor, Version: 1, CreatedAt: now, UpdatedAt: now}
-	m := &domain.Membership{ID: primitive.NewObjectID(), WorkspaceID: w.ID, UserID: actor, Role: domain.RoleOwner, Status: domain.MembershipActive, CreatedAt: now, UpdatedAt: now}
+	m := &domain.Membership{ID: primitive.NewObjectID(), WorkspaceID: w.ID, UserID: actor, UserName: displayName(in.OwnerName, actor), Role: domain.RoleOwner, Status: domain.MembershipActive, CreatedAt: now, UpdatedAt: now}
 	if err := s.repo.CreateWorkspace(ctx, w, m, audit(w.ID, actor, "workspace.created", "workspace", w.ID.Hex(), nil, now)); err != nil {
 		return nil, err
 	}
@@ -417,7 +418,7 @@ func (s *AdministrationService) RevokeInvitation(ctx context.Context, actor, wor
 	return s.repo.UpdateInvitation(ctx, inv, expectedVersion, audit(wid, actor, "invitation.revoked", "invitation", iid.Hex(), nil, now))
 }
 
-func (s *AdministrationService) AcceptInvitation(ctx context.Context, actor, token string) (*domain.Membership, error) {
+func (s *AdministrationService) AcceptInvitation(ctx context.Context, actor, userName, token string) (*domain.Membership, error) {
 	if err := s.identities.Validate(ctx, actor); err != nil {
 		return nil, err
 	}
@@ -441,12 +442,19 @@ func (s *AdministrationService) AcceptInvitation(ctx context.Context, actor, tok
 	expectedVersion := inv.Version
 	inv.AcceptedAt, inv.AcceptedBy = &now, actor
 	inv.Version++
-	m := &domain.Membership{ID: primitive.NewObjectID(), WorkspaceID: inv.WorkspaceID, UserID: actor, Role: inv.Role, Status: domain.MembershipActive, CreatedAt: now, UpdatedAt: now}
+	m := &domain.Membership{ID: primitive.NewObjectID(), WorkspaceID: inv.WorkspaceID, UserID: actor, UserName: displayName(userName, actor), Role: inv.Role, Status: domain.MembershipActive, CreatedAt: now, UpdatedAt: now}
 	if err = s.repo.AcceptInvitation(ctx, inv, expectedVersion, m, audit(inv.WorkspaceID, actor, "invitation.accepted", "invitation", inv.ID.Hex(), nil, now)); err != nil {
 		return nil, err
 	}
 	s.authorizer.Invalidate(inv.WorkspaceID, actor)
 	return m, nil
+}
+
+func displayName(name, fallback string) string {
+	if name = strings.TrimSpace(name); name != "" {
+		return name
+	}
+	return fallback
 }
 
 func (s *AdministrationService) ListMembers(ctx context.Context, actor, workspaceID string) ([]*domain.Membership, error) {

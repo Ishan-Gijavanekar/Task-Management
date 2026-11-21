@@ -266,14 +266,14 @@ func TestInvitationAcceptIsSingleUseAndInvalidatesMembershipCache(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	member, err := s.AcceptInvitation(ctx, "new-user", result.Token)
+	member, err := s.AcceptInvitation(ctx, "new-user", "New User", result.Token)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if member.Role != domain.RoleMember {
 		t.Fatal("wrong accepted role")
 	}
-	if _, err = s.AcceptInvitation(ctx, "second-user", result.Token); !errors.Is(err, domain.ErrConflict) {
+	if _, err = s.AcceptInvitation(ctx, "second-user", "Second User", result.Token); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("token was reusable: %v", err)
 	}
 	if _, err = authz.Membership(ctx, w.ID, "new-user"); err != nil {
@@ -289,7 +289,7 @@ func TestInvitationCannotReplaceExistingMembership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.AcceptInvitation(ctx, "owner", result.Token); !errors.Is(err, domain.ErrConflict) {
+	if _, err = s.AcceptInvitation(ctx, "owner", "Owner", result.Token); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("existing owner membership was replaceable: %v", err)
 	}
 	if repo.members[memberKey(w.ID, "owner")].Role != domain.RoleOwner {
@@ -306,7 +306,7 @@ func TestInvitationExpiryRevocationAndRateLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.now = func() time.Time { return time.Date(2026, 10, 25, 14, 0, 0, 0, time.UTC) }
-	if _, err = s.AcceptInvitation(ctx, "late", expired.Token); !errors.Is(err, domain.ErrInvitationExpired) {
+	if _, err = s.AcceptInvitation(ctx, "late", "Late User", expired.Token); !errors.Is(err, domain.ErrInvitationExpired) {
 		t.Fatalf("got %v", err)
 	}
 	s.now = func() time.Time { return time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC) }
@@ -317,7 +317,7 @@ func TestInvitationExpiryRevocationAndRateLimit(t *testing.T) {
 	if err = s.RevokeInvitation(ctx, "owner", w.ID.Hex(), revoked.Invitation.ID.Hex()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.AcceptInvitation(ctx, "revoked", revoked.Token); !errors.Is(err, domain.ErrConflict) {
+	if _, err = s.AcceptInvitation(ctx, "revoked", "Revoked User", revoked.Token); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("revoked invite accepted: %v", err)
 	}
 	for i := len(repo.invitations); i < int(invitationLimitPerHour); i++ {

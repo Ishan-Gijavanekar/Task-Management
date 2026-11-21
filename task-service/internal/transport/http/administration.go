@@ -34,6 +34,7 @@ func (h *Handler) createWorkspace(c *fiber.Ctx) error {
 	if c.BodyParser(&in) != nil {
 		return fail(c, domain.ErrInvalidArgument)
 	}
+	in.OwnerName, _ = c.Locals("actorName").(string)
 	out, err := h.admin.CreateWorkspace(c.UserContext(), actor(c), in)
 	if err != nil {
 		return fail(c, err)
@@ -162,7 +163,8 @@ func (h *Handler) acceptInvitation(c *fiber.Ctx) error {
 	if c.BodyParser(&in) != nil {
 		return fail(c, domain.ErrInvalidArgument)
 	}
-	out, err := h.admin.AcceptInvitation(c.UserContext(), actor(c), in.Token)
+	name, _ := c.Locals("actorName").(string)
+	out, err := h.admin.AcceptInvitation(c.UserContext(), actor(c), name, in.Token)
 	if err != nil {
 		return fail(c, err)
 	}

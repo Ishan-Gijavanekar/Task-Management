@@ -38,9 +38,9 @@ export function MembersPage() {
             <div className="member-row" key={member.userId}>
               <span>
                 <span className="profile-avatar">
-                  {member.userId.slice(0, 2).toUpperCase()}
+                  {(member.userName || member.userId).slice(0, 2).toUpperCase()}
                 </span>
-                <strong>{member.userId}</strong>
+                <strong>{member.userName || member.userId}</strong>
               </span>
               <span className="role-chip">{member.role}</span>
               <span className={`membership-status ${member.status}`}>

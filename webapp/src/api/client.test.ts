@@ -67,4 +67,29 @@ describe('api client', () => {
     )
     expect(localStorage.length).toBe(0)
   })
+
+  it('normalizes empty Go collections before pages render them', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ projects: null }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ members: null }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ tasks: null }), { status: 200 }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.listProjects('workspace-1')).resolves.toEqual({
+      projects: [],
+    })
+    await expect(api.listMembers('workspace-1')).resolves.toEqual({
+      members: [],
+    })
+    await expect(
+      api.listTasks('workspace-1', new URLSearchParams()),
+    ).resolves.toEqual({ tasks: [] })
+  })
 })

@@ -153,7 +153,7 @@ export const api = {
   listProjects: (workspaceId: string, signal?: AbortSignal) =>
     request<ProjectList>(`/workspaces/${workspaceId}/projects`, {
       signal: signal ?? null,
-    }),
+    }).then((result) => ({ ...result, projects: result.projects ?? [] })),
   getProject: (workspaceId: string, projectId: string, signal?: AbortSignal) =>
     request<Project>(`/workspaces/${workspaceId}/projects/${projectId}`, {
       signal: signal ?? null,
@@ -182,7 +182,7 @@ export const api = {
   listMembers: (workspaceId: string, signal?: AbortSignal) =>
     request<MemberList>(`/workspaces/${workspaceId}/members`, {
       signal: signal ?? null,
-    }),
+    }).then((result) => ({ ...result, members: result.members ?? [] })),
   listTasks: (
     workspaceId: string,
     search: URLSearchParams,
@@ -190,7 +190,7 @@ export const api = {
   ) =>
     request<TaskPage>(`/workspaces/${workspaceId}/tasks?${search.toString()}`, {
       signal: signal ?? null,
-    }),
+    }).then((result) => ({ ...result, tasks: result.tasks ?? [] })),
   getTask: (
     workspaceId: string,
     taskId: string,

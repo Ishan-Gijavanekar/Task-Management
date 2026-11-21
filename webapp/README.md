@@ -1,6 +1,16 @@
 # Taskflow web application
 
-Phase 13 provides the browser foundation for the task-management platform. It is a strict TypeScript, React, and Vite application with a responsive shell and complete authentication journeys.
+Phases 13 and 14 provide the browser application for the task-management platform. It is a strict TypeScript, React, and Vite application with responsive authentication, workspace, project, and task journeys.
+
+## Phase 14 workflow
+
+- Create or reopen a workspace, switch between locally remembered workspaces, and update workspace settings.
+- Create projects and use responsive board or list views with URL-backed search, filters, sorting, saved filters, and cursor pagination.
+- Create and edit tasks with assignees, status, priority, dates, labels, checklists, and dependencies; archive and restore tasks from the archived view.
+- Move tasks by drag and drop or the accessible move selector. Optimistic changes roll back on failure, and version conflicts offer reload or intentional reapply actions.
+- Open task deep links without losing the current filters. Mutation requests use idempotency keys, while server responses remain the cache source of truth.
+
+The current public API does not expose a workspace-list endpoint. The browser therefore remembers only workspace IDs and names that the signed-in user creates or explicitly opens; authorization and membership are still enforced by the backend.
 
 ## Run locally
 
@@ -22,7 +32,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The production build fails if compressed JavaScript exceeds 180 KiB or CSS exceeds 30 KiB. Playwright exercises registration, login and route restoration, refresh-session restoration, logout, password reset, and automated accessibility on desktop and mobile Chromium profiles.
+The production build fails if compressed JavaScript exceeds 180 KiB or CSS exceeds 30 KiB. Playwright exercises authentication plus the primary workspace/project/task workflow and automated accessibility on desktop and mobile Chromium profiles.
 
 ## Architecture
 

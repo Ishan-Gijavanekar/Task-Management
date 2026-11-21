@@ -259,3 +259,41 @@ func (r *MongoRepository) ListAuditEvents(ctx context.Context, workspaceID primi
 	}
 	return events, nil
 }
+
+func (r *MongoRepository) CreateLabel(ctx context.Context, label *domain.Label, event *domain.AuditEvent) error {
+	return r.transaction(ctx, func(tx mongo.SessionContext) error {
+		if _, err := r.labels.InsertOne(tx, label); err != nil {
+			return mapMongoError(err)
+		}
+		return insertAudit(tx, r.auditEvents, event)
+	})
+}
+
+func (r *MongoRepository) ListLabels(ctx context.Context, workspaceID primitive.ObjectID) ([]*domain.Label, error) {
+	cursor, err := r.labels.Find(ctx, bson.M{"workspaceId": workspaceID}, options.Find().SetSort(bson.D{{Key: "name", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var labels []*domain.Label
+	if err := cursor.All(ctx, &labels); err != nil {
+		return nil, err
+	}
+	return labels, nil
+}
+
+func (r *MongoRepository) DeleteLabel(ctx context.Context, workspaceID, labelID primitive.ObjectID, event *domain.AuditEvent) error {
+	return r.transaction(ctx, func(tx mongo.SessionContext) error {
+		result, err := r.labels.DeleteOne(tx, bson.M{"_id": labelID, "workspaceId": workspaceID})
+		if err != nil {
+			return err
+		}
+		if result.DeletedCount == 0 {
+			return domain.ErrNotFound
+		}
+		if _, err = r.tasks.UpdateMany(tx, bson.M{"workspaceId": workspaceID, "labelIds": labelID}, bson.M{"$pull": bson.M{"labelIds": labelID}}); err != nil {
+			return err
+		}
+		return insertAudit(tx, r.auditEvents, event)
+	})
+}

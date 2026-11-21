@@ -17,10 +17,11 @@ type memoryAdministration struct {
 	invitations map[primitive.ObjectID]*domain.Invitation
 	quotas      map[string]int64
 	audits      []*domain.AuditEvent
+	labels      map[primitive.ObjectID]*domain.Label
 }
 
 func newMemoryAdministration() *memoryAdministration {
-	return &memoryAdministration{workspaces: map[primitive.ObjectID]*domain.Workspace{}, projects: map[primitive.ObjectID]*domain.Project{}, members: map[string]*domain.Membership{}, invitations: map[primitive.ObjectID]*domain.Invitation{}, quotas: map[string]int64{}}
+	return &memoryAdministration{workspaces: map[primitive.ObjectID]*domain.Workspace{}, projects: map[primitive.ObjectID]*domain.Project{}, members: map[string]*domain.Membership{}, invitations: map[primitive.ObjectID]*domain.Invitation{}, quotas: map[string]int64{}, labels: map[primitive.ObjectID]*domain.Label{}}
 }
 func memberKey(w primitive.ObjectID, user string) string { return w.Hex() + ":" + user }
 func (m *memoryAdministration) CreateWorkspace(_ context.Context, w *domain.Workspace, member *domain.Membership, audit *domain.AuditEvent) error {
@@ -192,6 +193,34 @@ func (m *memoryAdministration) ListAuditEvents(_ context.Context, w primitive.Ob
 	}
 	return out, nil
 }
+func (m *memoryAdministration) CreateLabel(_ context.Context, label *domain.Label, event *domain.AuditEvent) error {
+	for _, existing := range m.labels {
+		if existing.WorkspaceID == label.WorkspaceID && existing.Name == label.Name {
+			return domain.ErrConflict
+		}
+	}
+	m.labels[label.ID] = label
+	m.audits = append(m.audits, event)
+	return nil
+}
+func (m *memoryAdministration) ListLabels(_ context.Context, workspaceID primitive.ObjectID) ([]*domain.Label, error) {
+	var out []*domain.Label
+	for _, label := range m.labels {
+		if label.WorkspaceID == workspaceID {
+			out = append(out, label)
+		}
+	}
+	return out, nil
+}
+func (m *memoryAdministration) DeleteLabel(_ context.Context, workspaceID, labelID primitive.ObjectID, event *domain.AuditEvent) error {
+	label := m.labels[labelID]
+	if label == nil || label.WorkspaceID != workspaceID {
+		return domain.ErrNotFound
+	}
+	delete(m.labels, labelID)
+	m.audits = append(m.audits, event)
+	return nil
+}
 
 func setupAdministration(t *testing.T) (*AdministrationService, *memoryAdministration, *Authorizer) {
 	t.Helper()
@@ -205,6 +234,25 @@ func setupAdministration(t *testing.T) (*AdministrationService, *memoryAdministr
 	svc.now = func() time.Time { return fixed }
 	authz.now = svc.now
 	return svc, repo, authz
+}
+
+func TestLabelLifecycleIsWorkspaceScoped(t *testing.T) {
+	s, _, _ := setupAdministration(t)
+	w, err := s.CreateWorkspace(context.Background(), "owner", CreateWorkspaceInput{Name: "Team"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	label, err := s.CreateLabel(context.Background(), "owner", w.ID.Hex(), CreateLabelInput{Name: " Bug ", Color: "#FF0000"})
+	if err != nil || label.Name != "Bug" || label.Color != "#ff0000" {
+		t.Fatalf("unexpected label: %#v, %v", label, err)
+	}
+	labels, err := s.ListLabels(context.Background(), "owner", w.ID.Hex())
+	if err != nil || len(labels) != 1 {
+		t.Fatalf("unexpected labels: %#v, %v", labels, err)
+	}
+	if err = s.DeleteLabel(context.Background(), "owner", w.ID.Hex(), label.ID.Hex()); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestWorkspaceLifecycleAndOwnershipTransfer(t *testing.T) {

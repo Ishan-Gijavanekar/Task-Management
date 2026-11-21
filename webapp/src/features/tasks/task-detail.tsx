@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../api/client'
 import { ApiError, errorMessage } from '../../api/errors'
-import type { Membership, Project } from '../../api/types'
+import type { Label, Membership, Project, TaskRecord } from '../../api/types'
 import { LoadingScreen } from '../../ui/states'
 import { TaskForm } from './task-form'
 import { taskPayload } from './task-utils'
@@ -12,6 +12,8 @@ interface TaskDetailProps {
   taskId: string
   projects: Project[]
   members: Membership[]
+  labels: Label[]
+  tasks: TaskRecord[]
   canWrite: boolean
   onClose(): void
 }
@@ -21,6 +23,8 @@ export function TaskDetail({
   taskId,
   projects,
   members,
+  labels,
+  tasks,
   canWrite,
   onClose,
 }: TaskDetailProps) {
@@ -166,6 +170,8 @@ export function TaskDetail({
             task={current}
             projects={projects}
             members={members}
+            labels={labels}
+            tasks={tasks}
             pending={update.isPending}
             error=""
             onCancel={() => setEditing(false)}
@@ -250,13 +256,30 @@ export function TaskDetail({
                 </div>
               </section>
             ) : null}
+            {current.labelIds?.length ? (
+              <section>
+                <h3>Labels</h3>
+                <div className="tag-list">
+                  {current.labelIds.map((id) => {
+                    const label = labels.find((item) => item.id === id)
+                    return (
+                      <span key={id} style={{ borderColor: label?.color }}>
+                        {label?.name ?? id}
+                      </span>
+                    )
+                  })}
+                </div>
+              </section>
+            ) : null}
             {current.dependencies?.length ? (
               <section>
                 <h3>Dependencies</h3>
                 <div className="tag-list">
                   {current.dependencies.map((dependency) => (
                     <span key={dependency.dependsOnTaskId}>
-                      {dependency.dependsOnTaskId}
+                      {tasks.find(
+                        (item) => item.id === dependency.dependsOnTaskId,
+                      )?.title ?? dependency.dependsOnTaskId}
                     </span>
                   ))}
                 </div>

@@ -1,11 +1,13 @@
 import { type FormEvent } from 'react'
-import type { Membership, Project, TaskRecord } from '../../api/types'
+import type { Label, Membership, Project, TaskRecord } from '../../api/types'
 
 interface TaskFormProps {
   task?: TaskRecord
   projectId?: string | undefined
   projects: Project[]
   members: Membership[]
+  labels: Label[]
+  tasks: TaskRecord[]
   pending: boolean
   error: string
   onCancel(): void
@@ -32,6 +34,8 @@ export function TaskForm({
   projectId,
   projects,
   members,
+  labels,
+  tasks,
   pending,
   error,
   onCancel,
@@ -65,14 +69,8 @@ export function TaskForm({
       startDate: dateTime(data.get('startDate')),
       dueDate: dateTime(data.get('dueDate')),
       estimateMinutes: Number(data.get('estimateMinutes') || 0),
-      labelIds: String(data.get('labelIds'))
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean),
-      dependencies: String(data.get('dependencies'))
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean),
+      labelIds: data.getAll('labelIds').map(String),
+      dependencies: data.getAll('dependencies').map(String),
       checklist,
       ...(task ? { version: task.version } : {}),
     })
@@ -195,13 +193,19 @@ export function TaskForm({
           />
         </label>
         <label className="field" htmlFor="taskLabels">
-          <span>Label IDs</span>
-          <input
+          <span>Labels</span>
+          <select
             id="taskLabels"
             name="labelIds"
-            defaultValue={task?.labelIds?.join(', ')}
-            placeholder="Comma-separated IDs"
-          />
+            defaultValue={task?.labelIds ?? []}
+            multiple
+          >
+            {labels.map((label) => (
+              <option key={label.id} value={label.id}>
+                {label.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="field span-2" htmlFor="taskChecklist">
           <span>Checklist</span>
@@ -214,15 +218,23 @@ export function TaskForm({
           />
         </label>
         <label className="field span-2" htmlFor="taskDependencies">
-          <span>Dependencies</span>
-          <input
+          <span>Linked tasks</span>
+          <select
             id="taskDependencies"
             name="dependencies"
-            defaultValue={task?.dependencies
-              ?.map((item) => item.dependsOnTaskId)
-              .join(', ')}
-            placeholder="Comma-separated task IDs"
-          />
+            defaultValue={
+              task?.dependencies?.map((item) => item.dependsOnTaskId) ?? []
+            }
+            multiple
+          >
+            {tasks
+              .filter((candidate) => candidate.id !== task?.id)
+              .map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.title}
+                </option>
+              ))}
+          </select>
         </label>
       </div>
       <div className="dialog-actions">

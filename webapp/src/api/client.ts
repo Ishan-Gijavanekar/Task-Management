@@ -2,6 +2,8 @@ import { ApiError, mapApiError } from './errors'
 import { tokenStore } from './token-store'
 import type {
   AuthResponse,
+  Label,
+  LabelList,
   CreateProjectRequest,
   CreateWorkspaceRequest,
   LoginRequest,
@@ -183,6 +185,15 @@ export const api = {
     request<MemberList>(`/workspaces/${workspaceId}/members`, {
       signal: signal ?? null,
     }).then((result) => ({ ...result, members: result.members ?? [] })),
+  listLabels: (workspaceId: string, signal?: AbortSignal) =>
+    request<LabelList>(`/workspaces/${workspaceId}/labels`, {
+      signal: signal ?? null,
+    }).then((result) => ({ ...result, labels: result.labels ?? [] })),
+  createLabel: (workspaceId: string, name: string, color: string) =>
+    request<Label>(`/workspaces/${workspaceId}/labels`, {
+      method: 'POST',
+      body: { name, color },
+    }),
   listTasks: (
     workspaceId: string,
     search: URLSearchParams,

@@ -21,6 +21,7 @@ type MongoRepository struct {
 	memberships *mongo.Collection
 	workspaces  *mongo.Collection
 	projects    *mongo.Collection
+	labels      *mongo.Collection
 	invitations *mongo.Collection
 	auditEvents *mongo.Collection
 	rateLimits  *mongo.Collection
@@ -33,7 +34,7 @@ func NewMongoRepository(db *mongo.Database) (*MongoRepository, error) {
 	return &MongoRepository{
 		db: db, tasks: db.Collection("tasks"), activities: db.Collection("task_activities"),
 		idempotency: db.Collection("task_idempotency"), memberships: db.Collection("workspace_memberships"),
-		workspaces: db.Collection("workspaces"), projects: db.Collection("projects"),
+		workspaces: db.Collection("workspaces"), projects: db.Collection("projects"), labels: db.Collection("workspace_labels"),
 		invitations: db.Collection("workspace_invitations"), auditEvents: db.Collection("workspace_audit_events"),
 		rateLimits: db.Collection("workspace_rate_limits"),
 	}, nil
@@ -62,6 +63,9 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 		{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "archivedAt", Value: 1}, {Key: "name", Value: 1}}},
 	}); err != nil {
 		return fmt.Errorf("create project indexes: %w", err)
+	}
+	if _, err := r.labels.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "workspaceId", Value: 1}, {Key: "name", Value: 1}}, Options: options.Index().SetUnique(true)}); err != nil {
+		return fmt.Errorf("create label index: %w", err)
 	}
 	if _, err := r.invitations.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "tokenHash", Value: 1}}, Options: options.Index().SetUnique(true)},
@@ -264,6 +268,14 @@ func (r *MongoRepository) GetMembership(ctx context.Context, workspaceID primiti
 		return nil, mapMongoError(err)
 	}
 	return &membership, nil
+}
+
+func (r *MongoRepository) LabelsExist(ctx context.Context, workspaceID primitive.ObjectID, ids []primitive.ObjectID) (bool, error) {
+	if len(ids) == 0 {
+		return true, nil
+	}
+	count, err := r.labels.CountDocuments(ctx, bson.M{"workspaceId": workspaceID, "_id": bson.M{"$in": ids}})
+	return count == int64(len(ids)), err
 }
 
 func (r *MongoRepository) DependencyPathExists(ctx context.Context, workspaceID, from, target primitive.ObjectID) (bool, error) {

@@ -56,6 +56,7 @@ type TaskRepository interface {
 	GetProject(context.Context, primitive.ObjectID, primitive.ObjectID, bool) (*domain.Project, error)
 	ListProjects(context.Context, primitive.ObjectID, bool) ([]*domain.Project, error)
 	DependencyPathExists(context.Context, primitive.ObjectID, primitive.ObjectID, primitive.ObjectID) (bool, error)
+	LabelsExist(context.Context, primitive.ObjectID, []primitive.ObjectID) (bool, error)
 	Ping(context.Context) error
 }
 
@@ -79,4 +80,7 @@ type AdministrationRepository interface {
 	AcceptInvitation(context.Context, *domain.Invitation, int64, *domain.Membership, *domain.AuditEvent) error
 	ConsumeInvitationQuota(context.Context, primitive.ObjectID, string, time.Time, int64) error
 	ListAuditEvents(context.Context, primitive.ObjectID, int64) ([]*domain.AuditEvent, error)
+	CreateLabel(context.Context, *domain.Label, *domain.AuditEvent) error
+	ListLabels(context.Context, primitive.ObjectID) ([]*domain.Label, error)
+	DeleteLabel(context.Context, primitive.ObjectID, primitive.ObjectID, *domain.AuditEvent) error
 }

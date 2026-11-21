@@ -68,11 +68,23 @@ export function TaskExplorer({
     queryKey: ['members', workspaceId],
     queryFn: ({ signal }) => api.listMembers(workspaceId, signal),
   })
+  const labels = useQuery({
+    queryKey: ['labels', workspaceId],
+    queryFn: ({ signal }) => api.listLabels(workspaceId, signal),
+  })
+  const taskOptions = useQuery({
+    queryKey: ['task-options', workspaceId, projectId],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({ limit: '200' })
+      if (projectId) params.set('projectId', projectId)
+      return api.listTasks(workspaceId, params, signal)
+    },
+  })
 
   const requestSearch = useMemo(() => {
     const params = new URLSearchParams()
     if (projectId) params.set('projectId', projectId)
-    for (const key of ['q', 'status', 'priority', 'assigneeId']) {
+    for (const key of ['q', 'status', 'priority', 'assigneeId', 'labelId']) {
       const value = search.get(key)
       if (value) params.set(key, value)
     }
@@ -158,6 +170,13 @@ export function TaskExplorer({
     },
     onError: (cause) => setError(errorMessage(cause)),
   })
+  const createLabel = useMutation({
+    mutationFn: ({ name, color }: { name: string; color: string }) =>
+      api.createLabel(workspaceId, name, color),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['labels', workspaceId] }),
+    onError: (cause) => setError(errorMessage(cause)),
+  })
 
   function setParam(key: string, value?: string) {
     setSearch(
@@ -211,6 +230,13 @@ export function TaskExplorer({
     >
     saved[name] = search.toString()
     localStorage.setItem(key, JSON.stringify(saved))
+  }
+
+  function addLabel() {
+    const name = window.prompt('Label name')?.trim()
+    if (!name) return
+    const color = window.prompt('Label color (hex)', '#4f6bed')?.trim()
+    if (color) createLabel.mutate({ name, color })
   }
 
   const currentProject = projects.data?.projects.find(
@@ -337,6 +363,28 @@ export function TaskExplorer({
           <option value="priority">Priority</option>
           <option value="title">Title</option>
         </select>
+        <select
+          aria-label="Filter by label"
+          value={search.get('labelId') ?? ''}
+          onChange={(event) => setParam('labelId', event.target.value)}
+        >
+          <option value="">All labels</option>
+          {labels.data?.labels.map((label) => (
+            <option key={label.id} value={label.id}>
+              {label.name}
+            </option>
+          ))}
+        </select>
+        {canWrite && (
+          <button
+            className="button secondary compact"
+            type="button"
+            onClick={addLabel}
+            disabled={createLabel.isPending}
+          >
+            Add label
+          </button>
+        )}
         {Object.keys(savedFilters).length ? (
           <select
             aria-label="Open saved filter"
@@ -554,6 +602,8 @@ export function TaskExplorer({
               projectId={projectId}
               projects={projects.data?.projects ?? []}
               members={members.data?.members ?? []}
+              labels={labels.data?.labels ?? []}
+              tasks={taskOptions.data?.tasks ?? []}
               pending={create.isPending}
               error={error}
               onCancel={() => setCreating(false)}
@@ -568,6 +618,8 @@ export function TaskExplorer({
           taskId={detailId}
           projects={projects.data?.projects ?? []}
           members={members.data?.members ?? []}
+          labels={labels.data?.labels ?? []}
+          tasks={taskOptions.data?.tasks ?? []}
           canWrite={canWrite}
           onClose={() => setParam('task')}
         />

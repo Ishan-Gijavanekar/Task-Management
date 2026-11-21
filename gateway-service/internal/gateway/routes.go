@@ -121,6 +121,16 @@ func workspaceRoute(method string, s []string) (Route, bool) {
 			if len(s) == 5 && method == "GET" {
 				return readRoute("listAudit", TaskService, true), true
 			}
+		case "labels":
+			if len(s) == 5 && (method == "GET" || method == "POST") {
+				if method == "GET" {
+					return readRoute("listLabels", TaskService, true), true
+				}
+				return writeRoute("createLabel", TaskService, true, 60), true
+			}
+			if len(s) == 6 && method == "DELETE" {
+				return writeRoute("deleteLabel", TaskService, true, 60), true
+			}
 		case "tasks", "tasks:batch":
 			if s[4] == "tasks:batch" && len(s) == 5 && method == "PATCH" {
 				return writeRoute("batchTasks", TaskService, true, 120), true

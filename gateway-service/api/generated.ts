@@ -40,6 +40,11 @@ export interface ChecklistItem {
   text: string;
 }
 
+export interface CreateLabelRequest {
+  color: string;
+  name: string;
+}
+
 export interface CreateProjectRequest {
   description?: string;
   key: string;
@@ -99,6 +104,14 @@ export interface InvitationResult {
 export interface InviteRequest {
   email: string;
   role: "admin" | "member" | "viewer";
+}
+
+export interface Label {
+  color: string;
+  createdAt: string;
+  id: string;
+  name: string;
+  workspaceId: string;
 }
 
 export interface LoginRequest {
@@ -269,9 +282,11 @@ export const apiOperations = {
   archiveTask: { method: "DELETE", path: "/workspaces/{workspaceId}/tasks/{taskId}" },
   archiveWorkspace: { method: "DELETE", path: "/workspaces/{workspaceId}" },
   batchUpdateTasks: { method: "PATCH", path: "/workspaces/{workspaceId}/tasks:batch" },
+  createLabel: { method: "POST", path: "/workspaces/{workspaceId}/labels" },
   createProject: { method: "POST", path: "/workspaces/{workspaceId}/projects" },
   createTask: { method: "POST", path: "/workspaces/{workspaceId}/tasks" },
   createWorkspace: { method: "POST", path: "/workspaces" },
+  deleteLabel: { method: "DELETE", path: "/workspaces/{workspaceId}/labels/{labelId}" },
   deleteUser: { method: "DELETE", path: "/users/{userId}" },
   forgotPassword: { method: "POST", path: "/auth/forgot-password" },
   getCurrentUser: { method: "GET", path: "/me" },
@@ -280,6 +295,7 @@ export const apiOperations = {
   getUser: { method: "GET", path: "/users/{userId}" },
   getWorkspace: { method: "GET", path: "/workspaces/{workspaceId}" },
   inviteWorkspaceMember: { method: "POST", path: "/workspaces/{workspaceId}/invitations" },
+  listLabels: { method: "GET", path: "/workspaces/{workspaceId}/labels" },
   listProjects: { method: "GET", path: "/workspaces/{workspaceId}/projects" },
   listTasks: { method: "GET", path: "/workspaces/{workspaceId}/tasks" },
   listUsers: { method: "GET", path: "/users" },

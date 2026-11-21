@@ -27,6 +27,36 @@ func (h *Handler) registerAdministration(r fiber.Router) {
 	r.Patch("/workspaces/:workspaceId/members/:userId", h.updateMember)
 	r.Delete("/workspaces/:workspaceId/members/:userId", h.removeMember)
 	r.Get("/workspaces/:workspaceId/audit-events", h.listAudit)
+	r.Post("/workspaces/:workspaceId/labels", h.createLabel)
+	r.Get("/workspaces/:workspaceId/labels", h.listLabels)
+	r.Delete("/workspaces/:workspaceId/labels/:labelId", h.deleteLabel)
+}
+
+func (h *Handler) createLabel(c *fiber.Ctx) error {
+	var in service.CreateLabelInput
+	if c.BodyParser(&in) != nil {
+		return fail(c, domain.ErrInvalidArgument)
+	}
+	out, err := h.admin.CreateLabel(c.UserContext(), actor(c), c.Params("workspaceId"), in)
+	if err != nil {
+		return fail(c, err)
+	}
+	return c.Status(201).JSON(out)
+}
+
+func (h *Handler) listLabels(c *fiber.Ctx) error {
+	out, err := h.admin.ListLabels(c.UserContext(), actor(c), c.Params("workspaceId"))
+	if err != nil {
+		return fail(c, err)
+	}
+	return c.JSON(fiber.Map{"labels": out})
+}
+
+func (h *Handler) deleteLabel(c *fiber.Ctx) error {
+	if err := h.admin.DeleteLabel(c.UserContext(), actor(c), c.Params("workspaceId"), c.Params("labelId")); err != nil {
+		return fail(c, err)
+	}
+	return c.SendStatus(204)
 }
 
 func (h *Handler) createWorkspace(c *fiber.Ctx) error {

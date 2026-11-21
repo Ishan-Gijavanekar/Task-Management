@@ -121,6 +121,9 @@ func (s *Service) Create(ctx context.Context, actor string, in CreateInput) (*do
 	if e != nil {
 		return nil, e
 	}
+	if e = s.validateLabels(ctx, wid, labels); e != nil {
+		return nil, e
+	}
 	taskID := primitive.NewObjectID()
 	deps, e := s.dependencies(ctx, wid, taskID, in.Dependencies)
 	if e != nil {
@@ -211,6 +214,9 @@ func (s *Service) Update(ctx context.Context, actor string, in UpdateInput) (*do
 	}
 	labels, e := parseIDs(in.LabelIDs, "labelIds")
 	if e != nil {
+		return nil, e
+	}
+	if e = s.validateLabels(ctx, wid, labels); e != nil {
 		return nil, e
 	}
 	deps, e := s.dependencies(ctx, wid, tid, in.Dependencies)
@@ -520,6 +526,17 @@ func (s *Service) validateAssignee(ctx context.Context, wid primitive.ObjectID, 
 	membership, e := s.authorizer.Membership(ctx, wid, assignee)
 	if e != nil || membership.Status != domain.MembershipActive {
 		return fmt.Errorf("%w: assignee must be an active workspace member", domain.ErrInvalidArgument)
+	}
+	return nil
+}
+
+func (s *Service) validateLabels(ctx context.Context, wid primitive.ObjectID, labels []primitive.ObjectID) error {
+	exist, err := s.repo.LabelsExist(ctx, wid, labels)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("%w: labels must belong to the workspace", domain.ErrInvalidArgument)
 	}
 	return nil
 }

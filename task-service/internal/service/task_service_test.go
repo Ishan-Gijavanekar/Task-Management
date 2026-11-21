@@ -127,6 +127,9 @@ func (m *memoryRepo) GetMembership(_ context.Context, w primitive.ObjectID, a st
 	}
 	return &domain.Membership{WorkspaceID: w, UserID: a, Role: role, Status: domain.MembershipActive}, nil
 }
+func (m *memoryRepo) LabelsExist(_ context.Context, _ primitive.ObjectID, _ []primitive.ObjectID) (bool, error) {
+	return true, nil
+}
 func (m *memoryRepo) GetWorkspace(_ context.Context, w primitive.ObjectID, _ bool) (*domain.Workspace, error) {
 	x := m.workspaces[w]
 	if x == nil {

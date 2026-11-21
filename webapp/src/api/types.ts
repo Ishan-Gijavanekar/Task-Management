@@ -5,6 +5,7 @@ export type {
   CreateTaskRequest,
   CreateWorkspaceRequest,
   ErrorEnvelope,
+  Label,
   LoginRequest,
   Membership,
   Project,
@@ -50,6 +51,10 @@ export interface ProjectList {
 
 export interface MemberList {
   members: import('../../../gateway-service/api/generated').Membership[]
+}
+
+export interface LabelList {
+  labels: import('../../../gateway-service/api/generated').Label[]
 }
 
 export interface MessageResponse {

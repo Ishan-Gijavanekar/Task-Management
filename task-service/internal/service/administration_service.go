@@ -22,6 +22,7 @@ import (
 const invitationLimitPerHour int64 = 10
 
 var projectKeyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9]{1,9}$`)
+var labelColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 type AdministrationService struct {
 	repo       repository.AdministrationRepository
@@ -71,6 +72,56 @@ type InvitationResult struct {
 type UpdateMemberInput struct {
 	Role   domain.WorkspaceRole    `json:"role"`
 	Status domain.MembershipStatus `json:"status"`
+}
+type CreateLabelInput struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+func (s *AdministrationService) CreateLabel(ctx context.Context, actor, workspaceID string, in CreateLabelInput) (*domain.Label, error) {
+	wid, err := parseID(workspaceID, "workspaceId")
+	if err != nil {
+		return nil, err
+	}
+	if _, err = s.require(ctx, wid, actor, policy.TaskWrite); err != nil {
+		return nil, err
+	}
+	name, color := strings.TrimSpace(in.Name), strings.TrimSpace(in.Color)
+	if name == "" || len(name) > 50 || !labelColorPattern.MatchString(color) {
+		return nil, domain.ErrInvalidArgument
+	}
+	now := s.now().UTC()
+	label := &domain.Label{ID: primitive.NewObjectID(), WorkspaceID: wid, Name: name, Color: strings.ToLower(color), CreatedAt: now}
+	if err = s.repo.CreateLabel(ctx, label, audit(wid, actor, "label.created", "label", label.ID.Hex(), nil, now)); err != nil {
+		return nil, err
+	}
+	return label, nil
+}
+
+func (s *AdministrationService) ListLabels(ctx context.Context, actor, workspaceID string) ([]*domain.Label, error) {
+	wid, err := parseID(workspaceID, "workspaceId")
+	if err != nil {
+		return nil, err
+	}
+	if _, err = s.require(ctx, wid, actor, policy.TaskRead); err != nil {
+		return nil, err
+	}
+	return s.repo.ListLabels(ctx, wid)
+}
+
+func (s *AdministrationService) DeleteLabel(ctx context.Context, actor, workspaceID, labelID string) error {
+	wid, err := parseID(workspaceID, "workspaceId")
+	if err != nil {
+		return err
+	}
+	lid, err := parseID(labelID, "labelId")
+	if err != nil {
+		return err
+	}
+	if _, err = s.require(ctx, wid, actor, policy.TaskWrite); err != nil {
+		return err
+	}
+	return s.repo.DeleteLabel(ctx, wid, lid, audit(wid, actor, "label.deleted", "label", lid.Hex(), nil, s.now().UTC()))
 }
 
 func (s *AdministrationService) CreateWorkspace(ctx context.Context, actor string, in CreateWorkspaceInput) (*domain.Workspace, error) {

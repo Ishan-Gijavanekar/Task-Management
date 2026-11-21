@@ -109,6 +109,7 @@ type Label struct {
 	WorkspaceID primitive.ObjectID `json:"workspaceId" bson:"workspaceId"`
 	Name        string             `json:"name" bson:"name"`
 	Color       string             `json:"color" bson:"color"`
+	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
 }
 
 type ChecklistItem struct {

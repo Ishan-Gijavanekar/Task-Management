@@ -201,6 +201,10 @@ func (h *Handler) acceptInvitation(c *fiber.Ctx) error {
 	return c.JSON(out)
 }
 func (h *Handler) listMembers(c *fiber.Ctx) error {
+	name, _ := c.Locals("actorName").(string)
+	if err := h.admin.RefreshMemberName(c.UserContext(), actor(c), c.Params("workspaceId"), name); err != nil {
+		return fail(c, err)
+	}
 	out, err := h.admin.ListMembers(c.UserContext(), actor(c), c.Params("workspaceId"))
 	if err != nil {
 		return fail(c, err)

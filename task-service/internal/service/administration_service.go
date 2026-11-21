@@ -519,6 +519,27 @@ func (s *AdministrationService) ListMembers(ctx context.Context, actor, workspac
 	return s.repo.ListMemberships(ctx, wid)
 }
 
+func (s *AdministrationService) RefreshMemberName(ctx context.Context, actor, workspaceID, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil
+	}
+	wid, err := parseID(workspaceID, "workspaceId")
+	if err != nil {
+		return err
+	}
+	membership, err := s.authorizer.Membership(ctx, wid, actor)
+	if err != nil || membership.UserName == name {
+		return err
+	}
+	membership.UserName, membership.UpdatedAt = name, s.now().UTC()
+	if err = s.repo.UpsertMembership(ctx, membership, nil); err != nil {
+		return err
+	}
+	s.authorizer.Invalidate(wid, actor)
+	return nil
+}
+
 func (s *AdministrationService) UpdateMember(ctx context.Context, actor, workspaceID, userID string, in UpdateMemberInput) (*domain.Membership, error) {
 	wid, err := parseID(workspaceID, "workspaceId")
 	if err != nil {

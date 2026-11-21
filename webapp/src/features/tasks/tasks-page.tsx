@@ -551,7 +551,9 @@ export function TaskExplorer({
               <span>
                 {members.data?.members.find(
                   (member) => member.userId === task.assigneeId,
-                )?.userName || task.assigneeId || 'Unassigned'}
+                )?.userName ||
+                  task.assigneeId ||
+                  'Unassigned'}
               </span>
             </button>
           ))}

@@ -95,8 +95,13 @@ export function TaskDetail({
     onError: (cause) => setError(errorMessage(cause)),
   })
   const comment = useMutation({
-    mutationFn: ({ body, mentionIds }: { body: string; mentionIds: string[] }) =>
-      api.createComment(workspaceId, taskId, body, mentionIds),
+    mutationFn: ({
+      body,
+      mentionIds,
+    }: {
+      body: string
+      mentionIds: string[]
+    }) => api.createComment(workspaceId, taskId, body, mentionIds),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -237,8 +242,11 @@ export function TaskDetail({
               <div>
                 <small>Assignee</small>
                 <strong>
-                  {members.find((member) => member.userId === current.assigneeId)
-                    ?.userName || current.assigneeId || 'Unassigned'}
+                  {members.find(
+                    (member) => member.userId === current.assigneeId,
+                  )?.userName ||
+                    current.assigneeId ||
+                    'Unassigned'}
                 </strong>
               </div>
               <div>

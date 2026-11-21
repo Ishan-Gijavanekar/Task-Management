@@ -277,11 +277,7 @@ export const api = {
       `/workspaces/${workspaceId}/tasks/${taskId}/comments`,
       { method: 'POST', body: { body, mentionIds } },
     ),
-  listActivities: (
-    workspaceId: string,
-    taskId: string,
-    signal?: AbortSignal,
-  ) =>
+  listActivities: (workspaceId: string, taskId: string, signal?: AbortSignal) =>
     request<ActivityPage>(
       `/workspaces/${workspaceId}/tasks/${taskId}/activities?limit=100`,
       { signal: signal ?? null },

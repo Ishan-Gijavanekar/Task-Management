@@ -92,4 +92,46 @@ describe('api client', () => {
       api.listTasks('workspace-1', new URLSearchParams()),
     ).resolves.toEqual({ tasks: [] })
   })
+
+  it('creates and accepts workspace invitations', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ invitation: {}, token: 'invite-token' }),
+          {
+            status: 201,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ workspaceId: 'workspace-1' }), {
+          status: 200,
+        }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.inviteMember('workspace-1', {
+      email: 'person@example.com',
+      role: 'member',
+    })
+    await api.acceptInvitation('invite-token')
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/workspaces/workspace-1/invitations',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'person@example.com', role: 'member' }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/invitations/accept',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'invite-token' }),
+      }),
+    )
+  })
 })

@@ -11,6 +11,7 @@ import {
 import { AnonymousRoute, ProtectedRoute } from './features/auth/route-guards'
 import { DashboardPage } from './features/dashboard/dashboard-page'
 import { MembersPage } from './features/members/members-page'
+import { AcceptInvitationPage } from './features/invitations/accept-invitation-page'
 import { NotificationsPage } from './features/notifications/notifications-page'
 import { ProjectsPage } from './features/projects/projects-page'
 import { SettingsPage } from './features/settings/settings-page'
@@ -48,6 +49,7 @@ export default function App() {
             }
           />
           <Route path="workspaces" element={<WorkspacesPage />} />
+          <Route path="invitations/accept" element={<AcceptInvitationPage />} />
           <Route
             path="projects/*"
             element={

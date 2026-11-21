@@ -5,6 +5,8 @@ export type {
   CreateTaskRequest,
   CreateWorkspaceRequest,
   ErrorEnvelope,
+  InvitationResult,
+  InviteRequest,
   Label,
   LoginRequest,
   Membership,

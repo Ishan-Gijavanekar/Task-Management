@@ -53,6 +53,7 @@ export function LoginPage() {
   const [search] = useSearchParams()
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+  const returnTo = search.get('returnTo')
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -108,7 +109,16 @@ export function LoginPage() {
         <SubmitButton pending={pending}>Sign in</SubmitButton>
       </form>
       <p className="auth-switch">
-        New to Taskflow? <Link to="/register">Create an account</Link>
+        New to Taskflow?{' '}
+        <Link
+          to={
+            returnTo
+              ? `/register?returnTo=${encodeURIComponent(returnTo)}`
+              : '/register'
+          }
+        >
+          Create an account
+        </Link>
       </p>
     </section>
   )
@@ -117,6 +127,7 @@ export function LoginPage() {
 export function RegisterPage() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const [search] = useSearchParams()
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
 
@@ -131,7 +142,7 @@ export function RegisterPage() {
         email: String(data.get('email')),
         password: String(data.get('password')),
       })
-      navigate('/', { replace: true })
+      navigate(safeReturnUrl(search.get('returnTo')), { replace: true })
     } catch (cause) {
       setError(errorMessage(cause))
     } finally {
@@ -170,7 +181,16 @@ export function RegisterPage() {
         <SubmitButton pending={pending}>Create account</SubmitButton>
       </form>
       <p className="auth-switch">
-        Already have an account? <Link to="/login">Sign in</Link>
+        Already have an account?{' '}
+        <Link
+          to={
+            search.get('returnTo')
+              ? `/login?returnTo=${encodeURIComponent(search.get('returnTo')!)}`
+              : '/login'
+          }
+        >
+          Sign in
+        </Link>
       </p>
     </section>
   )

@@ -670,6 +670,23 @@
   padding: 0;
   overflow: hidden;
 }
+.invite-panel {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.invite-panel form,
+.invite-result {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 180px auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+.invite-result {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
 .member-row {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) 0.5fr 0.5fr;
@@ -705,6 +722,10 @@
   .workspace-settings form {
     align-items: stretch;
     flex-direction: column;
+  }
+  .invite-panel form,
+  .invite-result {
+    grid-template-columns: 1fr;
   }
   .task-toolbar .search-field {
     min-width: 100%;

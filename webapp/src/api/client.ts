@@ -9,6 +9,8 @@ import type {
   LabelList,
   CreateProjectRequest,
   CreateWorkspaceRequest,
+  InvitationResult,
+  InviteRequest,
   LoginRequest,
   MemberList,
   MessageResponse,
@@ -23,6 +25,7 @@ import type {
   UpdateWorkspaceRequest,
   User,
   Workspace,
+  Membership,
 } from './types'
 
 const API_ROOT = import.meta.env.VITE_API_URL ?? '/api/v1'
@@ -190,6 +193,16 @@ export const api = {
     request<MemberList>(`/workspaces/${workspaceId}/members`, {
       signal: signal ?? null,
     }).then((result) => ({ ...result, members: result.members ?? [] })),
+  inviteMember: (workspaceId: string, input: InviteRequest) =>
+    request<InvitationResult>(`/workspaces/${workspaceId}/invitations`, {
+      method: 'POST',
+      body: input,
+    }),
+  acceptInvitation: (token: string) =>
+    request<Membership>('/invitations/accept', {
+      method: 'POST',
+      body: { token },
+    }),
   listLabels: (workspaceId: string, signal?: AbortSignal) =>
     request<LabelList>(`/workspaces/${workspaceId}/labels`, {
       signal: signal ?? null,

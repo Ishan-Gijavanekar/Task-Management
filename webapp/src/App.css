@@ -170,7 +170,9 @@ select:focus {
   color: var(--ink-soft);
 }
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 .sidebar {
   width: 262px;
@@ -315,8 +317,19 @@ select:focus {
   height: 30px;
 }
 .shell-content {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   margin-left: 262px;
+  overflow: hidden;
+}
+.shell-content > main {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.shell-content .centered-state {
+  min-height: 100%;
 }
 .mobile-header {
   display: none;

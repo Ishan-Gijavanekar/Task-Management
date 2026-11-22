@@ -198,20 +198,21 @@ function ProjectList() {
                   required
                 />
               </label>
-              <label className="field" htmlFor="key">
-                <span>Key</span>
+              <div className="field">
+                <label htmlFor="key">Key</label>
                 <input
                   id="key"
                   name="key"
                   pattern="[A-Za-z][A-Za-z0-9]{1,9}"
                   placeholder="WEB"
                   maxLength={10}
+                  aria-describedby="key-hint"
                   required
                 />
-                <small className="field-hint">
+                <small className="field-hint" id="key-hint">
                   2–10 letters or numbers, starting with a letter.
                 </small>
-              </label>
+              </div>
               <label className="field" htmlFor="description">
                 <span>Description</span>
                 <textarea

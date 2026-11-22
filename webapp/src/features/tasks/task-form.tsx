@@ -1,4 +1,5 @@
 import { type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import type { Label, Membership, Project, TaskRecord } from '../../api/types'
 
 interface TaskFormProps {
@@ -192,21 +193,29 @@ export function TaskForm({
             defaultValue={task?.estimateMinutes ?? 0}
           />
         </label>
-        <label className="field" htmlFor="taskLabels">
-          <span>Labels</span>
-          <select
-            id="taskLabels"
-            name="labelIds"
-            defaultValue={task?.labelIds ?? []}
-            multiple
-          >
-            {labels.map((label) => (
-              <option key={label.id} value={label.id}>
-                {label.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <fieldset className="field label-picker">
+          <legend>Labels</legend>
+          {labels.length ? (
+            <div>
+              {labels.map((label) => (
+                <label key={label.id}>
+                  <input
+                    type="checkbox"
+                    name="labelIds"
+                    value={label.id}
+                    defaultChecked={task?.labelIds?.includes(label.id)}
+                  />
+                  <i style={{ backgroundColor: label.color }} />
+                  <span>{label.name}</span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p>
+              No labels yet. <Link to="/settings/labels">Create a label</Link>
+            </p>
+          )}
+        </fieldset>
         <label className="field span-2" htmlFor="taskChecklist">
           <span>Checklist</span>
           <textarea

@@ -9,7 +9,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { ApiError, errorMessage } from '../../api/errors'
-import type { TaskPage, TaskRecord } from '../../api/types'
+import type { Label, TaskPage, TaskRecord } from '../../api/types'
 import { EmptyState, LoadingScreen } from '../../ui/states'
 import { useWorkspacePermission } from '../members/permissions'
 import { useWorkspace } from '../workspaces/workspace-context'
@@ -170,13 +170,6 @@ export function TaskExplorer({
     },
     onError: (cause) => setError(errorMessage(cause)),
   })
-  const createLabel = useMutation({
-    mutationFn: ({ name, color }: { name: string; color: string }) =>
-      api.createLabel(workspaceId, name, color),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['labels', workspaceId] }),
-    onError: (cause) => setError(errorMessage(cause)),
-  })
 
   function setParam(key: string, value?: string) {
     setSearch(
@@ -230,13 +223,6 @@ export function TaskExplorer({
     >
     saved[name] = search.toString()
     localStorage.setItem(key, JSON.stringify(saved))
-  }
-
-  function addLabel() {
-    const name = window.prompt('Label name')?.trim()
-    if (!name) return
-    const color = window.prompt('Label color (hex)', '#4f6bed')?.trim()
-    if (color) createLabel.mutate({ name, color })
   }
 
   const currentProject = projects.data?.projects.find(
@@ -376,14 +362,9 @@ export function TaskExplorer({
           ))}
         </select>
         {canWrite && (
-          <button
-            className="button secondary compact"
-            type="button"
-            onClick={addLabel}
-            disabled={createLabel.isPending}
-          >
-            Add label
-          </button>
+          <Link className="button secondary compact" to="/settings/labels">
+            Manage labels
+          </Link>
         )}
         {Object.keys(savedFilters).length ? (
           <select
@@ -502,6 +483,7 @@ export function TaskExplorer({
                       <TaskCard
                         key={task.id}
                         task={task}
+                        labels={labels.data?.labels ?? []}
                         canWrite={canWrite}
                         onOpen={() => setParam('task', task.id)}
                         onMove={(next) => moveTask(task, next)}
@@ -536,6 +518,10 @@ export function TaskExplorer({
                     )?.key
                   }
                 </small>
+                <TaskLabels
+                  labelIds={task.labelIds}
+                  labels={labels.data?.labels ?? []}
+                />
               </span>
               <span className={`status-chip ${task.status}`}>
                 {statusLabels[task.status]}
@@ -632,11 +618,13 @@ export function TaskExplorer({
 
 function TaskCard({
   task,
+  labels,
   canWrite,
   onOpen,
   onMove,
 }: {
   task: TaskRecord
+  labels: Label[]
   canWrite: boolean
   onOpen(): void
   onMove(status: TaskStatus): void
@@ -653,6 +641,7 @@ function TaskCard({
       <button className="task-card-main" type="button" onClick={onOpen}>
         <span className={`priority-bar ${task.priority}`} />
         <strong>{task.title}</strong>
+        <TaskLabels labelIds={task.labelIds} labels={labels} />
         {task.description && <p>{task.description}</p>}
         <div className="task-meta">
           {task.dueDate && (
@@ -693,5 +682,28 @@ function TaskCard({
         </label>
       )}
     </article>
+  )
+}
+
+function TaskLabels({
+  labelIds = [],
+  labels,
+}: {
+  labelIds: string[] | undefined
+  labels: Label[]
+}) {
+  const assigned = labelIds
+    .map((id) => labels.find((label) => label.id === id))
+    .filter((label) => label !== undefined)
+  if (!assigned.length) return null
+  return (
+    <span className="task-labels">
+      {assigned.map((label) => (
+        <span key={label.id}>
+          <i style={{ backgroundColor: label.color }} />
+          {label.name}
+        </span>
+      ))}
+    </span>
   )
 }

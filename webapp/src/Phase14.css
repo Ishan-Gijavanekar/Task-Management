@@ -668,43 +668,174 @@
 .muted {
   color: var(--ink-soft);
 }
-.notification-list {
+.notifications-page {
+  max-width: 1180px;
+}
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.notification-actions > span {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.notifications-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.75fr);
+  align-items: start;
+  gap: 1rem;
+}
+.notification-inbox,
+.preference-panel {
   padding: 0;
   overflow: hidden;
 }
+.notification-section-heading {
+  margin: 0;
+  padding: 1.2rem 1.3rem;
+  border-bottom: 1px solid var(--line);
+}
+.notification-section-heading h2,
+.notification-section-heading p {
+  margin: 0;
+}
+.notification-section-heading p {
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.notification-list {
+  display: grid;
+}
 .notification-list > a {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.2rem;
   color: var(--ink);
   border-bottom: 1px solid var(--line);
 }
-.notification-list > a.unread {
-  border-left: 3px solid var(--brand);
-  background: #fff8f5;
-  font-weight: 700;
+.notification-list > a:last-child {
+  border-bottom: 0;
 }
-.notification-list time {
+.notification-list > a:hover {
+  background: var(--surface-soft);
+  text-decoration: none;
+}
+.notification-list > a.unread {
+  background: #fff8f5;
+}
+.notification-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--brand-dark);
+  background: #fff0ec;
+  font-weight: 800;
+}
+.notification-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.notification-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notification-copy > span {
   color: var(--ink-soft);
   font-size: 0.72rem;
-  font-weight: 400;
-}
-.preference-panel {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-.preference-panel label {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  font-weight: 500;
   text-transform: capitalize;
 }
-.preference-panel input {
-  width: auto;
-  min-height: auto;
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.notification-empty {
+  display: grid;
+  justify-items: center;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+.notification-empty > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  color: var(--success);
+  background: #eaf7f1;
+  font-size: 1.25rem;
+}
+.notification-empty h2,
+.notification-empty p {
+  margin-bottom: 0.35rem;
+}
+.notification-empty p {
+  color: var(--ink-soft);
+}
+.notification-loading {
+  min-height: 180px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+.notification-loading .spinner {
+  width: 28px;
+  height: 28px;
+}
+.preference-list {
+  display: grid;
+}
+.preference-list label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.preference-list label > span {
+  display: grid;
+  gap: 0.2rem;
+}
+.preference-list small {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.preference-list input {
+  width: 38px;
+  min-height: 22px;
+  appearance: none;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #cbd1cc
+    radial-gradient(circle at 11px, #fff 0 7px, transparent 8px);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.preference-list input:checked {
+  background: var(--success)
+    radial-gradient(circle at 27px, #fff 0 7px, transparent 8px);
+}
+.preference-list input:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 .search-field input {
   min-height: 38px;
@@ -968,6 +1099,9 @@
   color: var(--danger);
 }
 @media (max-width: 900px) {
+  .notifications-layout {
+    grid-template-columns: 1fr;
+  }
   .settings-grid,
   .workspace-settings,
   .label-create-panel {

@@ -52,12 +52,20 @@ describe('TaskForm labels', () => {
     )
 
     await userEvent.type(screen.getByLabelText('Title'), 'Fix navigation')
-    await userEvent.click(screen.getByLabelText('Bug'))
+    await userEvent.click(screen.getByText('Select labels'))
+    await userEvent.type(screen.getByLabelText('Search labels'), 'front')
+    expect(screen.queryByLabelText('Bug')).not.toBeInTheDocument()
     await userEvent.click(screen.getByLabelText('Frontend'))
+    await userEvent.clear(screen.getByLabelText('Search labels'))
+    await userEvent.click(screen.getByLabelText('Bug'))
+    expect(
+      screen.getByRole('button', { name: 'Remove Frontend' }),
+    ).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Remove Bug' })).toBeVisible()
     await userEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ labelIds: ['label-1', 'label-2'] }),
+      expect.objectContaining({ labelIds: ['label-2', 'label-1'] }),
     )
   })
 })

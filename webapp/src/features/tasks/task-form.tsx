@@ -1,4 +1,4 @@
-import { type FormEvent } from 'react'
+import { type FormEvent, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Label, Membership, Project, TaskRecord } from '../../api/types'
 
@@ -193,29 +193,7 @@ export function TaskForm({
             defaultValue={task?.estimateMinutes ?? 0}
           />
         </label>
-        <fieldset className="field label-picker">
-          <legend>Labels</legend>
-          {labels.length ? (
-            <div>
-              {labels.map((label) => (
-                <label key={label.id}>
-                  <input
-                    type="checkbox"
-                    name="labelIds"
-                    value={label.id}
-                    defaultChecked={task?.labelIds?.includes(label.id)}
-                  />
-                  <i style={{ backgroundColor: label.color }} />
-                  <span>{label.name}</span>
-                </label>
-              ))}
-            </div>
-          ) : (
-            <p>
-              No labels yet. <Link to="/settings/labels">Create a label</Link>
-            </p>
-          )}
-        </fieldset>
+        <LabelPicker labels={labels} initialValue={task?.labelIds ?? []} />
         <label className="field span-2" htmlFor="taskChecklist">
           <span>Checklist</span>
           <textarea
@@ -255,5 +233,98 @@ export function TaskForm({
         </button>
       </div>
     </form>
+  )
+}
+
+function LabelPicker({
+  labels,
+  initialValue,
+}: {
+  labels: Label[]
+  initialValue: string[]
+}) {
+  const [selected, setSelected] = useState(initialValue)
+  const [search, setSearch] = useState('')
+  const visible = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase()
+    return query
+      ? labels.filter((label) => label.name.toLocaleLowerCase().includes(query))
+      : labels
+  }, [labels, search])
+
+  function toggle(id: string) {
+    setSelected((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    )
+  }
+
+  return (
+    <fieldset className="field label-picker">
+      <legend>Labels</legend>
+      {selected.length > 0 && (
+        <div className="selected-labels" aria-label="Selected labels">
+          {selected.map((id) => {
+            const label = labels.find((item) => item.id === id)
+            if (!label) return null
+            return (
+              <span key={id}>
+                <i style={{ backgroundColor: label.color }} />
+                {label.name}
+                <button
+                  type="button"
+                  aria-label={`Remove ${label.name}`}
+                  onClick={() => toggle(id)}
+                >
+                  ×
+                </button>
+              </span>
+            )
+          })}
+        </div>
+      )}
+      {selected.map((id) => (
+        <input key={id} type="hidden" name="labelIds" value={id} />
+      ))}
+      {labels.length ? (
+        <details className="label-dropdown">
+          <summary>
+            {selected.length ? `${selected.length} selected` : 'Select labels'}
+            <span aria-hidden="true">⌄</span>
+          </summary>
+          <div className="label-menu">
+            <input
+              type="search"
+              aria-label="Search labels"
+              placeholder="Search labels…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <div className="label-options">
+              {visible.length ? (
+                visible.map((label) => (
+                  <label key={label.id}>
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(label.id)}
+                      onChange={() => toggle(label.id)}
+                    />
+                    <i style={{ backgroundColor: label.color }} />
+                    <span>{label.name}</span>
+                  </label>
+                ))
+              ) : (
+                <p>No labels match “{search.trim()}”.</p>
+              )}
+            </div>
+          </div>
+        </details>
+      ) : (
+        <p className="label-picker-empty">
+          No labels yet. <Link to="/settings/labels">Create a label</Link>
+        </p>
+      )}
+    </fieldset>
   )
 }

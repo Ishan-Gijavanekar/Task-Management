@@ -481,17 +481,84 @@
 .label-picker legend {
   margin-bottom: 0.4rem;
 }
-.label-picker > div {
-  max-height: 132px;
-  display: grid;
+.selected-labels {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.35rem;
-  overflow-y: auto;
-  padding: 0.55rem;
+  margin-bottom: 0.4rem;
+}
+.selected-labels > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.3rem 0.25rem 0.5rem;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.selected-labels button {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.selected-labels button:hover {
+  color: var(--danger);
+  background: #fff0ef;
+}
+.label-dropdown {
+  position: relative;
+}
+.label-dropdown summary {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.8rem;
   border: 1px solid #d9ddd8;
   border-radius: var(--radius-sm);
   background: #fff;
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
 }
-.label-picker label {
+.label-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+.label-dropdown[open] summary {
+  border-color: var(--blue);
+  outline: 3px solid rgb(79 120 223 / 12%);
+}
+.label-menu {
+  width: 100%;
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.4rem);
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.label-menu > input {
+  min-height: 38px;
+  margin-bottom: 0.45rem;
+}
+.label-options {
+  max-height: 150px;
+  display: grid;
+  gap: 0.2rem;
+  overflow-y: auto;
+}
+.label-options label {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
@@ -501,10 +568,10 @@
   cursor: pointer;
   font-weight: 500;
 }
-.label-picker label:hover {
+.label-options label:hover {
   background: var(--surface-soft);
 }
-.label-picker input {
+.label-options input {
   width: 17px;
   min-height: 17px;
 }
@@ -515,7 +582,15 @@
   display: inline-block;
   border-radius: 50%;
 }
-.label-picker p {
+.label-options p {
+  margin: 0;
+  padding: 0.65rem;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-align: center;
+}
+.label-picker-empty {
   min-height: 46px;
   margin: 0;
   padding: 0.7rem 0.8rem;

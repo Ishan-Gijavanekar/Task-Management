@@ -252,6 +252,9 @@
   gap: 0.5rem;
   margin-top: auto;
 }
+.project-settings-panel {
+  max-width: 760px;
+}
 .empty-state.wide {
   max-width: none;
   padding: 4rem 1rem;

@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
-import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import {
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 import { api } from '../../api/client'
 import { errorMessage } from '../../api/errors'
 import { LoadingScreen } from '../../ui/states'
@@ -32,7 +39,8 @@ function ProjectList() {
   const { workspace } = useWorkspace()
   const { canWrite } = useWorkspacePermission()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useSearchParams()
+  const [open, setOpen] = useState(search.get('new') === 'true')
   const [error, setError] = useState('')
   const projects = useQuery({
     queryKey: ['projects', workspace!.id],
@@ -46,7 +54,7 @@ function ProjectList() {
         workflow: defaultWorkflow,
       }),
     onSuccess: async () => {
-      setOpen(false)
+      closeDialog()
       await queryClient.invalidateQueries({
         queryKey: ['projects', workspace!.id],
       })
@@ -59,15 +67,24 @@ function ProjectList() {
     setError('')
     const data = new FormData(event.currentTarget)
     create.mutate({
-      name: String(data.get('name')),
-      key: String(data.get('key')).toUpperCase(),
-      description: String(data.get('description')),
+      name: String(data.get('name')).trim(),
+      key: String(data.get('key')).trim().toUpperCase(),
+      description: String(data.get('description')).trim(),
     })
+  }
+
+  function closeDialog() {
+    setOpen(false)
+    if (search.has('new')) {
+      const next = new URLSearchParams(search)
+      next.delete('new')
+      setSearch(next, { replace: true })
+    }
   }
 
   return (
     <div className="page">
-      <header className="page-header">
+      <header className="page-header project-header">
         <div>
           <p className="eyebrow">Planning</p>
           <h1>Projects</h1>
@@ -77,7 +94,10 @@ function ProjectList() {
           <button
             className="button primary"
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setError('')
+              setOpen(true)
+            }}
           >
             ＋ New project
           </button>
@@ -125,7 +145,10 @@ function ProjectList() {
             <button
               className="button primary"
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setError('')
+                setOpen(true)
+              }}
             >
               Create project
             </button>
@@ -136,7 +159,7 @@ function ProjectList() {
         <div
           className="dialog-backdrop"
           role="presentation"
-          onMouseDown={() => setOpen(false)}
+          onMouseDown={closeDialog}
         >
           <section
             className="dialog-card"
@@ -153,7 +176,7 @@ function ProjectList() {
               <button
                 className="icon-button"
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={closeDialog}
                 aria-label="Close"
               >
                 ×
@@ -180,20 +203,29 @@ function ProjectList() {
                 <input
                   id="key"
                   name="key"
-                  pattern="[A-Za-z][A-Za-z0-9_-]{1,9}"
+                  pattern="[A-Za-z][A-Za-z0-9]{1,9}"
                   placeholder="WEB"
+                  maxLength={10}
                   required
                 />
+                <small className="field-hint">
+                  2–10 letters or numbers, starting with a letter.
+                </small>
               </label>
               <label className="field" htmlFor="description">
                 <span>Description</span>
-                <textarea id="description" name="description" rows={3} />
+                <textarea
+                  id="description"
+                  name="description"
+                  rows={3}
+                  maxLength={2000}
+                />
               </label>
               <div className="dialog-actions">
                 <button
                   className="button secondary"
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={closeDialog}
                 >
                   Cancel
                 </button>
@@ -259,18 +291,22 @@ function ProjectSettings() {
     )
 
   return (
-    <div className="page narrow-page">
-      <header className="page-header">
+    <div className="page task-page">
+      <header className="page-header task-header">
         <div>
           <p className="eyebrow">{project.data.key}</p>
           <h1>Project settings</h1>
           <p>Update how this project appears to the workspace.</p>
         </div>
-        <Link className="button secondary" to={`/projects/${projectId}/board`}>
-          Back to board
-        </Link>
       </header>
-      <section className="panel form-panel">
+      <nav className="view-tabs" aria-label="Project views">
+        <Link to={`/projects/${projectId}/board`}>Board</Link>
+        <Link to={`/projects/${projectId}/list`}>List</Link>
+        <Link className="active" to={`/projects/${projectId}/settings`}>
+          Settings
+        </Link>
+      </nav>
+      <section className="panel form-panel project-settings-panel">
         {error && (
           <div className="notice error" role="alert">
             {error}
@@ -282,8 +318,8 @@ function ProjectSettings() {
             event.preventDefault()
             const data = new FormData(event.currentTarget)
             update.mutate({
-              name: String(data.get('name')),
-              description: String(data.get('description')),
+              name: String(data.get('name')).trim(),
+              description: String(data.get('description')).trim(),
               visibility: String(data.get('visibility')) as
                 'private' | 'workspace',
             })
@@ -296,6 +332,7 @@ function ProjectSettings() {
               name="name"
               defaultValue={project.data.name}
               disabled={!canWrite}
+              maxLength={100}
               required
             />
           </label>
@@ -307,6 +344,7 @@ function ProjectSettings() {
               rows={4}
               defaultValue={project.data.description}
               disabled={!canWrite}
+              maxLength={2000}
             />
           </label>
           <label className="field" htmlFor="visibility">

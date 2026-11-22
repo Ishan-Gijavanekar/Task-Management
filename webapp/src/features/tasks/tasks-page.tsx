@@ -246,12 +246,9 @@ export function TaskExplorer({
           </p>
         </div>
         <div className="header-actions">
-          {projectId && (
-            <Link
-              className="button secondary"
-              to={`/projects/${projectId}/settings`}
-            >
-              Project settings
+          {projectId && canWrite && (
+            <Link className="button secondary" to="/projects?new=true">
+              New project
             </Link>
           )}
           {canWrite && projects.data?.projects.length ? (
@@ -280,6 +277,7 @@ export function TaskExplorer({
           >
             List
           </Link>
+          <Link to={`/projects/${projectId}/settings`}>Settings</Link>
         </nav>
       )}
 

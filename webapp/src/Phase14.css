@@ -26,6 +26,107 @@
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
   gap: 1rem;
 }
+.settings-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.settings-summary {
+  min-height: 190px;
+}
+.settings-details {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+.settings-details > div {
+  display: grid;
+  gap: 0.15rem;
+}
+.settings-details dt,
+.settings-link small,
+.label-list small {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+.settings-details dd {
+  margin: 0;
+  font-weight: 700;
+}
+.settings-id {
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+}
+.settings-link {
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  color: var(--ink);
+}
+.settings-link:hover {
+  border-color: #cfd4ce;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.settings-link > span:nth-child(2) {
+  display: grid;
+}
+.settings-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--brand-dark);
+  background: #fff0ec;
+  font-size: 1.25rem;
+}
+.label-create-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.65fr) minmax(0, 1.35fr);
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+.label-create-panel form {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 90px auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+.color-field input {
+  padding: 0.3rem;
+  cursor: pointer;
+}
+.label-panel .panel-heading p {
+  margin: 0.25rem 0 0;
+}
+.label-list {
+  display: grid;
+}
+.label-list > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--line);
+}
+.label-list > div > span:nth-child(2) {
+  display: grid;
+}
+.label-swatch {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.label-empty {
+  margin: 2rem auto;
+}
 .form-panel form,
 .stacked-form {
   display: grid;
@@ -716,8 +817,12 @@
 }
 @media (max-width: 900px) {
   .settings-grid,
-  .workspace-settings {
+  .workspace-settings,
+  .label-create-panel {
     grid-template-columns: 1fr;
+  }
+  .label-create-panel form {
+    grid-template-columns: minmax(160px, 1fr) 90px auto;
   }
   .workspace-settings form {
     align-items: stretch;
@@ -738,6 +843,10 @@
   }
 }
 @media (max-width: 560px) {
+  .settings-sections,
+  .label-create-panel form {
+    grid-template-columns: 1fr;
+  }
   .dialog-backdrop {
     padding: 0;
     align-items: end;

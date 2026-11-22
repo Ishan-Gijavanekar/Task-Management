@@ -212,6 +212,10 @@ export const api = {
       method: 'POST',
       body: { name, color },
     }),
+  deleteLabel: (workspaceId: string, labelId: string) =>
+    request<void>(`/workspaces/${workspaceId}/labels/${labelId}`, {
+      method: 'DELETE',
+    }),
   listTasks: (
     workspaceId: string,
     search: URLSearchParams,

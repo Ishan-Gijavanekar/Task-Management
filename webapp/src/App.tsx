@@ -75,7 +75,14 @@ export default function App() {
             }
           />
           <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route
+            path="settings/*"
+            element={
+              <WorkspaceGate>
+                <SettingsPage />
+              </WorkspaceGate>
+            }
+          />
         </Route>
       </Route>
       <Route path="*" element={<Navigate replace to="/" />} />

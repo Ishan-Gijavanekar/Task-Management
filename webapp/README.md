@@ -1,29 +1,94 @@
-# Taskflow web application
+# Task Management Web Application
 
-Phases 13 and 14 provide the browser application for the task-management platform. It is a strict TypeScript, React, and Vite application with responsive authentication, workspace, project, and task journeys.
+The web application is the browser interface for Task Management. Built with React, TypeScript and Vite, it provides account, workspace, project and task workflows through the versioned API Gateway. Data fetching and cache management use TanStack Query; React Router handles application navigation.
 
-## Phase 14 workflow
+## Features
 
-- Create or reopen a workspace, switch between locally remembered workspaces, and update workspace settings.
-- Create projects and use responsive board or list views with URL-backed search, filters, sorting, saved filters, and cursor pagination.
-- Create and edit tasks with assignees, status, priority, dates, labels, checklists, and dependencies; archive and restore tasks from the archived view.
-- Move tasks by drag and drop or the accessible move selector. Optimistic changes roll back on failure, and version conflicts offer reload or intentional reapply actions.
-- Open task deep links without losing the current filters. Mutation requests use idempotency keys, while server responses remain the cache source of truth.
+- Registration, login, recovery and authenticated navigation.
+- Workspace creation, reopening, switching and settings.
+- Project creation, visibility and workflow-oriented task views.
+- Responsive board and list layouts with search, filters, sorting and saved filters.
+- Task creation and updates with priority, assignee, dates, labels, checklists and dependencies.
+- Drag-and-drop task movement with an accessible alternative control.
+- Task detail links, comments, archive and restore operations.
+- Member management and notification flows.
+- Optimistic interactions with rollback and explicit version-conflict handling.
 
-The current public API does not expose a workspace-list endpoint. The browser therefore remembers only workspace IDs and names that the signed-in user creates or explicitly opens; authorization and membership are still enforced by the backend.
+The frontend is a client of the backend API; it does not make authoritative access-control decisions.
 
-## Run locally
+## Technology stack
 
-```sh
-npm install
+| Area | Technology |
+| --- | --- |
+| UI | React 19 |
+| Language | TypeScript |
+| Build tool | Vite 8 |
+| Routing | React Router 7 |
+| Server state | TanStack Query 5 |
+| Unit/component testing | Vitest and Testing Library |
+| Browser E2E testing | Playwright |
+| Accessibility testing | axe-core / Playwright |
+| Formatting and linting | Prettier and ESLint |
+
+## Local development
+
+Start the backend from the repository root:
+
+```bash
+docker compose up -d --build
+```
+
+Then start the web app:
+
+```bash
+cd webapp
+npm ci
 npm run dev
 ```
 
-Vite proxies `/api` to the gateway at `http://localhost:8088`. Set `VITE_API_URL` only when the public API lives at a different origin; include the `/api/v1` prefix.
+Visit **http://localhost:5173**. During development, Vite proxies `/api` calls to the API Gateway at `http://localhost:8088`. If the gateway uses a different host/origin, set `VITE_API_URL` to its complete public API base URL, including `/api/v1`.
 
-## Quality commands
+## Source organization
 
-```sh
+```text
+webapp/
+├── src/
+│   ├── api/          # API client, contract types, error handling and retries
+│   ├── features/     # Authentication, workspaces, projects, tasks and settings
+│   └── ui/           # Reusable UI and shared feedback components
+├── scripts/          # Build-size budget checks
+├── package.json
+└── README.md
+```
+
+The browser keeps access tokens in memory. Refresh sessions use an `HttpOnly`, `SameSite` cookie, and API calls include credentials. Authentication-related events synchronize across tabs through `BroadcastChannel`.
+
+## Workspace and task state
+
+The current public API does not expose a workspace-list endpoint. The browser therefore remembers workspace IDs and names for workspaces the user has created or explicitly opened. Backend membership and authorization checks still apply on every protected request.
+
+Board and list view state uses URL-backed search, filtering and sorting. TanStack Query manages server state; optimistic updates are reverted on failure, and stale entity versions present explicit reload or intentional reapply options. Mutations use idempotency keys where required by the API.
+
+## Development commands
+
+Run from `webapp/`:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Vite development server |
+| `npm run build` | Type-check, build and validate bundle-size budgets |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint |
+| `npm run format` | Format files using Prettier |
+| `npm run format:check` | Verify formatting without changes |
+| `npm test` | Run Vitest tests |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run test:e2e` | Run Playwright browser tests |
+
+Typical verification sequence:
+
+```bash
+npm ci
 npm run format:check
 npm run lint
 npm test
@@ -32,14 +97,14 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The production build fails if compressed JavaScript exceeds 180 KiB or CSS exceeds 30 KiB. Playwright exercises authentication plus the primary workspace/project/task workflow and automated accessibility on desktop and mobile Chromium profiles.
+The build enforces compressed asset budgets of 180 KiB for JavaScript and 30 KiB for CSS. Browser tests cover authentication and key workspace/project/task journeys across desktop and mobile Chromium profiles, including accessibility checks.
 
-## Architecture
+## Deployment considerations
 
-- `src/api` contains contract types, centralized error mapping, retry rules, cancellation support, and the cookie-aware API client.
-- `src/features` owns authentication, shell, workspace, project, task, member, notification, and settings modules.
-- `src/ui` contains accessible shared states, network feedback, branding, and the render error boundary.
-- TanStack Query supplies the request cache. Server responses remain authoritative and failed mutations are never retried automatically.
-- React Router guards authenticated routes and restores only same-origin relative return paths.
+Build the production assets using `npm run build` and serve the generated static output from a web host with SPA route fallback. Configure the public API origin, HTTPS, cookie compatibility and CORS at the gateway. Do not embed secrets in Vite variables; frontend configuration is included in distributable browser assets.
 
-Access tokens exist only in memory. Refresh sessions use the gateway's `HttpOnly`, `SameSite` cookie, API calls include credentials, and logout/login events synchronize across tabs through `BroadcastChannel`. The UI never makes privileged authorization decisions.
+## Related documentation
+
+- [Platform overview](../README.md)
+- [API gateway](../gateway-service/README.md)
+- [Public OpenAPI contract](../gateway-service/api/openapi.json)

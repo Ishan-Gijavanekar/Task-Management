@@ -1,166 +1,129 @@
-# Go gRPC User Service
+# User Service
 
-A production-oriented backend service built with **Go**, **gRPC**, **Fiber**, and **MongoDB**.
+The User Service manages user identities, account lifecycle and authentication for Task Management. It is implemented in Go, exposes Fiber HTTP endpoints and a Protocol Buffers-based gRPC interface, and persists users and session data in MongoDB.
 
-The project demonstrates how to build a scalable backend using clean separation between transport, business logic, and persistence layers.
+## Capabilities
 
-## Tech Stack
+- User registration, login, profile retrieval and user management.
+- JWT access tokens with issuer and signing-key configuration.
+- Refresh sessions using rotating tokens delivered through an `HttpOnly` browser cookie.
+- Detection of reused rotated refresh tokens and revocation of the affected token family.
+- Email verification and resend-verification flows.
+- Forgot-password and reset-password workflows.
+- Optional requirement for email verification before login.
+- HTTP liveness, MongoDB readiness checks and automated repository/service tests.
 
-- **Go** — Backend language
-- **gRPC** — Primary service communication
-- **Protocol Buffers** — API contracts and serialization
-- **Fiber** — HTTP/REST API layer
-- **MongoDB** — Database
-- **Docker** — Local development and deployment
+The API Gateway validates protected public requests before forwarding them. The User Service remains the authority for user and authentication records; other services use the verified identity when applying their own domain permissions.
 
 ## Architecture
 
-```text
-          Client
-             │
-      ┌──────┴──────┐
-      │             │
-     REST          gRPC
-      │             │
-      ▼             ▼
-   Fiber         gRPC Server
-      │             │
-      └──────┬──────┘
-             ▼
-       Service Layer
-             │
-             ▼
-      Repository Layer
-             │
-             ▼
-          MongoDB
+```mermaid
+flowchart TD
+  HTTP[Fiber HTTP :8080] --> Logic[Application / domain services]
+  RPC[gRPC :50051] --> Logic
+  Logic --> Repo[Repositories]
+  Repo --> Mongo[(MongoDB: users)]
 ```
 
-## Project Structure
+Primary directories include `cmd/server` (application startup), `api` (protocol definitions), `internal/config`, `internal/database`, `internal/domain`, `internal/repository`, `internal/service`, and `internal/transport` (HTTP and gRPC). The `tests` directory contains additional test coverage.
 
-```text
-.
-├── api/                # Protocol Buffer definitions
-├── cmd/
-│   └── server/         # Application entry point
-├── gen/                # Generated protobuf/gRPC code
-├── internal/
-│   ├── config/         # Application configuration
-│   ├── database/       # Database initialization
-│   ├── domain/         # Domain models
-│   ├── repository/     # Data access layer
-│   ├── service/        # Business logic
-│   └── transport/      # gRPC and HTTP handlers
-├── pkg/                # Shared packages
-├── tests/              # Integration and E2E tests
-├── docker-compose.yml
-├── Dockerfile
-├── Makefile
-└── go.mod
-```
+## Run the service
 
-## Getting Started
-
-### Prerequisites
-
-Make sure you have installed:
-
-- Go
-- Docker
-- Docker Compose
-
-### Setup
-
-Clone the repository and install dependencies:
+For the complete platform, from the repository root:
 
 ```bash
-go mod download
+docker compose up -d --build
 ```
 
-Create the environment configuration:
+The root Compose configuration starts this service internally on HTTP `8080` and gRPC `50051`, using the `users` MongoDB database. Neither application port is published to the host by that stack.
+
+For standalone development, start MongoDB and configure the service to reach it:
 
 ```bash
+cd user-service
 cp .env.example .env
-```
-
-Start MongoDB:
-
-```bash
-docker compose up -d
-```
-
-Run the application:
-
-```bash
+# Edit .env with reachable MongoDB and JWT settings
+go mod download
 go run ./cmd/server
 ```
 
-## Default Ports
+The sample `.env.example` uses a local authenticated MongoDB URI and database `user_service`, while the root Compose stack uses the internal `mongo` host and database `users`. Choose settings matching the environment in which the service runs rather than mixing both configurations.
 
-| Service | Port |
-|---|---:|
-| HTTP / Fiber | `8080` |
-| gRPC | `50051` |
-| MongoDB | `27017` |
+## Configuration
 
-## Development Status
+| Variable | Purpose |
+| --- | --- |
+| `APP_NAME`, `APP_ENV` | Application name and runtime environment |
+| `HTTP_PORT`, `GRPC_PORT` | HTTP and gRPC listener ports (defaults in sample: `8080`, `50051`) |
+| `MONGO_URI`, `MONGO_DATABASE` | MongoDB connection and database |
+| `JWT_SECRET`, `JWT_ACTIVE_KEY_ID`, `JWT_PREVIOUS_KEYS`, `JWT_ISSUER` | Token signing, issuer and rotation configuration |
+| `JWT_ACCESS_TOKEN_DURATION` | Access-token lifespan (sample: `15m`) |
+| `AUTH_REFRESH_TOKEN_DURATION` | Refresh-session lifespan (sample: `720h`) |
+| `AUTH_REFRESH_COOKIE_NAME`, `AUTH_REFRESH_COOKIE_SECURE` | Browser session cookie behavior |
+| `AUTH_REQUIRE_EMAIL_VERIFICATION` | Require verified email before login when enabled |
+| `AUTH_FRONTEND_URL` | Origin for verification/recovery links |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | Outgoing mail transport |
+| `HTTP_ALLOWED_ORIGINS`, `HTTP_BODY_LIMIT_MB`, `HTTP_TRUSTED_PROXIES` | HTTP origin and proxy controls |
 
-🚧 **Under active development**
+See [`.env.example`](.env.example) for the complete sample. The development Compose configuration sets `AUTH_REFRESH_COOKIE_SECURE=false` to support local HTTP. In production, use HTTPS with secure cookies and configure SMTP for external email delivery.
 
-Planned functionality includes:
+## REST API
 
-- User CRUD operations
-- gRPC API
-- REST API with Fiber
-- MongoDB persistence
-- Authentication and authorization
-- gRPC interceptors
-- Request validation
-- Pagination and filtering
-- Streaming RPCs
-- Structured logging
-- Health checks
-- Unit and integration tests
-- Dockerized deployment
+All examples below are prefixed by `/api/v1` when accessed through the gateway.
 
-## License
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/auth/register` | Create an account |
+| `POST` | `/auth/login` | Authenticate and establish a session |
+| `POST` | `/auth/refresh` | Rotate a refresh session and issue an access token |
+| `POST` | `/auth/logout` | End a refresh session |
+| `POST` | `/auth/forgot-password` | Begin account recovery |
+| `POST` | `/auth/reset-password` | Complete password reset |
+| `POST` | `/auth/verify-email` | Confirm email ownership |
+| `POST` | `/auth/resend-verification` | Request another verification message |
+| `GET` | `/me` | Get the current authenticated user |
+| `GET` | `/users` | List users (authenticated) |
+| `GET / PUT / DELETE` | `/users/{id}` | User record operations |
 
-This project is intended for learning and demonstration purposes.
+For exact payloads, authorization requirements, response schemas and error codes, refer to the [gateway OpenAPI document](../gateway-service/api/openapi.json).
 
-## Testing and quality
+### Authentication design
 
-Run the standard checks from this directory:
+Short-lived access tokens are paired with refresh sessions. Refresh tokens are stored as SHA-256 hashes instead of plaintext, and browser sessions are sent in `HttpOnly` cookies. Reuse of an already rotated refresh token causes revocation of its token family. Development verification and reset links may appear in structured logs; non-development environments should use SMTP.
 
-```sh
-make quality
+## Health and diagnostics
+
+| Method | Path | Meaning |
+| --- | --- | --- |
+| `GET` | `/health/live` | Process liveness |
+| `GET` | `/health/ready` | Bounded MongoDB readiness |
+| `GET` | `/health` | Compatibility health endpoint |
+
+## Tests and quality
+
+Run from `user-service/`:
+
+```bash
+make quality         # Formatting, vet and tests
+make test-race       # Go race detector
+make test-cover      # Coverage report
+make coverage-check  # Enforce documented coverage minimum
 ```
 
-Run race detection and produce a coverage report with:
+To run optional repository integration tests against a reachable MongoDB instance:
 
-```sh
-make test-race
-make test-cover
+```bash
+MONGO_INTEGRATION_URI='mongodb://localhost:27017' make test-integration
 ```
 
-The MongoDB repository test is opt-in so the normal unit suite remains self-contained. Start MongoDB, then run:
+Adjust the URI for authenticated or non-default MongoDB deployments. CI runs the integration suite using a dedicated MongoDB service, along with `govulncheck`, image vulnerability scanning and other platform checks.
 
-```sh
-MONGO_INTEGRATION_URI='mongodb://root:rootpassword@localhost:27017/?authSource=admin' make test-integration
-```
+## Security and deployment considerations
 
-## Authentication lifecycle
+Replace development JWT secrets, align the issuer and verification settings with the gateway and task service, enforce TLS and secure cookies, and keep signing credentials and SMTP secrets outside source control. When deploying independently, ensure the selected MongoDB URI is reachable from the service process or container.
 
-The REST API supports short-lived access tokens and rotating refresh sessions:
+## Related documentation
 
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/logout`
-- `POST /api/v1/auth/forgot-password`
-- `POST /api/v1/auth/reset-password`
-- `POST /api/v1/auth/verify-email`
-- `POST /api/v1/auth/resend-verification`
-
-Refresh tokens are stored as SHA-256 hashes and sent to browsers using an HttpOnly cookie. Reusing a rotated refresh token revokes its token family. Set `AUTH_REQUIRE_EMAIL_VERIFICATION=true` to require verification before login. Development verification and reset links are written to structured logs; non-development environments should configure the SMTP variables from `.env.example`.
-
-`GET /health/live` reports process liveness. `GET /health/ready` checks MongoDB with a bounded timeout. Keep the compatibility endpoint at `GET /health` for existing probes.
+- [Platform overview](../README.md)
+- [Gateway service](../gateway-service/README.md)
+- [Task service](../task-service/README.md)

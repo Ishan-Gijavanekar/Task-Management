@@ -235,7 +235,7 @@ export function TaskExplorer({
   ) as Record<string, string>
 
   return (
-    <div className="page task-page">
+    <div className={`page task-page ${view === 'board' ? 'task-page--board' : ''}`}>
       <header className="page-header task-header">
         <div>
           <p className="eyebrow">{currentProject?.key ?? 'All work'}</p>

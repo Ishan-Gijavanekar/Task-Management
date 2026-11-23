@@ -1207,3 +1207,204 @@
     overflow-x: auto;
   }
 }
+
+/* Taskflow board redesign. Append to webapp/src/Phase14.css.
+   Add task-page--board to the TaskExplorer page element only when view === 'board'. */
+
+/* Use the available content area instead of the generic 1320px page cap. */
+.task-page--board {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 24px 28px 28px;
+  min-width: 0;
+}
+.task-page--board .task-header {
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.task-page--board .task-header > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+.task-page--board .task-header h1 {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+/* Long project descriptions do not belong above the board. */
+.task-page--board .task-header p:last-child {
+  max-width: 780px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.5;
+  font-size: 0.82rem;
+}
+.task-page--board .view-tabs {
+  margin-bottom: 14px;
+}
+.task-page--board .task-toolbar {
+  padding: 10px 12px;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-radius: 9px;
+  box-shadow: none;
+}
+.task-page--board .task-toolbar .search-field {
+  flex: 1 1 240px;
+  min-width: min(100%, 215px);
+  max-width: 360px;
+}
+.task-page--board .task-toolbar select {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 190px;
+  min-width: 118px;
+  min-height: 36px;
+  font-size: 0.78rem;
+}
+.task-page--board .task-toolbar .button {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 0.77rem;
+}
+
+/* A real horizontal kanban: lanes never compress or stretch cards. */
+.task-page--board .task-board {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  height: clamp(500px, calc(100dvh - 295px), 900px);
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding: 0 2px 10px 0;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.task-page--board .board-column {
+  flex: 0 0 292px;
+  width: 292px;
+  min-width: 292px;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e6e9ee;
+  border-radius: 9px;
+  background: #f5f6f8;
+  scroll-snap-align: start;
+}
+.task-page--board .board-column > header {
+  flex: 0 0 auto;
+  min-height: 52px;
+  gap: 9px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e8eaee;
+}
+.task-page--board .board-column h2 {
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+.task-page--board .board-column header > span:last-child {
+  min-width: 24px;
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #e6e9ee;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.task-page--board .board-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-gutter: auto;
+}
+.task-page--board .task-card {
+  flex: 0 0 auto;
+  min-width: 0;
+  border: 1px solid #e2e6ec;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(23 34 47 / 6%);
+  transition: box-shadow 140ms ease, border-color 140ms ease;
+}
+.task-page--board .task-card:hover,
+.task-page--board .task-card:focus-within {
+  border-color: #b9c3d2;
+  box-shadow: 0 4px 12px rgb(23 34 47 / 9%);
+}
+.task-page--board .task-card-main {
+  padding: 12px 13px 9px;
+  gap: 8px;
+}
+.task-page--board .task-card-main strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+/* Keep the board scannable: full descriptions remain in TaskDetail. */
+.task-page--board .task-card-main > p {
+  display: none;
+}
+.task-page--board .priority-bar {
+  width: 27px;
+  height: 3px;
+}
+.task-page--board .task-labels {
+  gap: 4px;
+}
+.task-page--board .task-labels > span {
+  max-width: 100%;
+  font-size: 0.64rem;
+}
+.task-page--board .task-meta {
+  gap: 8px;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+/* Preserve the keyboard-accessible status selector without a big block. */
+.task-page--board .move-select {
+  padding: 0 12px 11px;
+}
+.task-page--board .move-select select {
+  min-height: 30px;
+  width: 100%;
+  padding: 3px 22px 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  color: #465366;
+  background-color: #f9fafb;
+}
+@media (max-width: 900px) {
+  .task-page--board { padding: 18px 18px 22px; }
+  .task-page--board .task-board { margin-right: 0; }
+  .task-page--board .board-column { flex-basis: 278px; width: 278px; min-width: 278px; }
+}
+@media (max-width: 560px) {
+  .task-page--board { padding: 14px 12px 18px; }
+  .task-page--board .task-header { gap: 10px; }
+  .task-page--board .task-toolbar .search-field { max-width: none; flex-basis: 100%; }
+  .task-page--board .task-toolbar select { flex: 1 1 130px; max-width: none; }
+  .task-page--board .task-board { height: max(430px, calc(100dvh - 315px)); margin-right: 0; grid-auto-columns: unset; }
+  .task-page--board .board-column { flex: 0 0 min(84vw, 300px); width: min(84vw, 300px); min-width: min(84vw, 300px); }
+}

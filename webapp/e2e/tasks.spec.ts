@@ -168,18 +168,37 @@ test('runs the primary workspace and task workflow', async ({
     'todo',
   )
 
-  await page.getByPlaceholder('Search tasks…').fill('Publish')
+  await page.getByRole('searchbox', { name: 'Search tasks' }).fill('Publish')
+  await page.getByLabel('Move Publish release notes').selectOption('todo')
+
+  await expect(page.getByLabel('Move Publish release notes')).toHaveValue(
+    'todo',
+  )
+
+  const taskSearch = page.getByRole('searchbox', {
+    name: 'Search tasks',
+  })
+
+  await expect(taskSearch).toBeVisible()
+  await taskSearch.fill('Publish')
+
   await expect(page).toHaveURL(/q=Publish/)
+
   await page.getByRole('button', { name: /Publish release notes/ }).click()
   await page.getByRole('button', { name: 'Edit task' }).click()
+
   await taskDialog
     .getByLabel('Description')
     .fill('Explain the complete workflow')
+
   await taskDialog.getByRole('button', { name: 'Save changes' }).click()
+
   await expect(
     taskDialog.getByText('Explain the complete workflow'),
   ).toBeVisible()
+
   await page.getByRole('button', { name: 'Close task' }).click()
+
   await expect(page).toHaveURL(/q=Publish/)
 
   const accessibility = await new AxeBuilder({ page }).analyze()

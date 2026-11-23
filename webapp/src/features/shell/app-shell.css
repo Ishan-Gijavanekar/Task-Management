@@ -1,0 +1,170 @@
+/* Shell-only visual system. The shared layout remains compatible with other pages. */
+.shell-refresh {
+  --shell-forest: #263f32;
+  --shell-text: #d8e3d8;
+  background: #f6f7f2;
+}
+.shell-refresh .sidebar {
+  width: 264px;
+  padding: 25px 14px 17px;
+  background: #263f32;
+  color: var(--shell-text);
+  border-right: 1px solid #1b3429;
+}
+.shell-refresh .sidebar-top {
+  padding: 0 12px 33px;
+}
+.shell-refresh .sidebar .brand {
+  color: #fff7e9;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.shell-refresh .brand-mark {
+  background: #c88063;
+  border-radius: 10px;
+}
+.shell-refresh .shell-sidebar-section-label {
+  margin: 0 12px 10px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: #9eb4a3;
+  font-weight: 750;
+}
+.shell-refresh .shell-nav-caption {
+  margin-top: 29px;
+}
+.shell-refresh .workspace-switcher {
+  display: flex;
+  gap: 11px;
+  padding: 12px;
+  margin: 0 3px;
+  border: 1px solid #58715d;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 7%);
+  color: #fff;
+}
+.shell-refresh .workspace-switcher:hover {
+  background: rgb(255 255 255 / 12%);
+}
+.shell-refresh .workspace-avatar {
+  width: 37px;
+  height: 37px;
+  flex: 0 0 37px;
+  border-radius: 9px;
+  color: #294735;
+  background: #d9e1cb;
+}
+.shell-refresh .workspace-switcher small {
+  color: #bacbbc;
+  font-size: 10px;
+}
+.shell-refresh .workspace-switcher strong {
+  font-size: 12px;
+}
+.shell-refresh .workspace-switcher > svg {
+  width: 15px;
+  flex: 0 0 15px;
+  color: #bdcebf;
+}
+.shell-refresh .sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.shell-refresh .sidebar nav a,
+.shell-refresh .sidebar-bottom > a {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 44px;
+  padding: 10px 13px;
+  margin: 0 3px;
+  border-radius: 9px;
+  color: #bfcfc1;
+  font-size: 13px;
+  font-weight: 550;
+}
+.shell-refresh .sidebar nav a svg,
+.shell-refresh .sidebar-bottom > a svg {
+  flex: 0 0 19px;
+  color: #a1bba8;
+}
+.shell-refresh .sidebar nav a:hover,
+.shell-refresh .sidebar-bottom > a:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 9%);
+  text-decoration: none;
+}
+.shell-refresh .sidebar nav a.active,
+.shell-refresh .sidebar-bottom > a.active {
+  box-shadow: none;
+  color: #fff;
+  background: #43614c;
+  font-weight: 700;
+}
+.shell-refresh .sidebar nav a.active svg,
+.shell-refresh .sidebar-bottom > a.active svg {
+  color: #e7d7b1;
+}
+.shell-refresh .sidebar-bottom {
+  gap: 13px;
+}
+.shell-refresh .profile-block {
+  margin: 0 3px;
+  padding: 18px 5px 0;
+  border-color: #4c6653;
+}
+.shell-refresh .profile-avatar {
+  background: #c88063;
+  color: #fff;
+}
+.shell-refresh .profile-block strong {
+  color: #fff7ea;
+}
+.shell-refresh .profile-block small {
+  color: #aac0b0;
+}
+.shell-refresh .profile-block .icon-button {
+  color: #dce7de;
+}
+.shell-refresh .shell-content {
+  margin-left: 264px;
+  background: #f6f7f2;
+}
+.shell-refresh .shell-content > main {
+  scrollbar-color: #c6d0c4 transparent;
+}
+.shell-refresh .mobile-header {
+  background: #fffefa;
+  border-bottom: 1px solid #e6eae0;
+}
+.shell-refresh .mobile-header .brand {
+  color: #2a4937;
+}
+.shell-refresh .scrim {
+  background: rgb(15 35 22 / 60%);
+}
+@media (max-width: 900px) {
+  .shell-refresh .sidebar {
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+  }
+  .shell-refresh .sidebar.open {
+    transform: translateX(0);
+  }
+  .shell-refresh .shell-content {
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell-refresh .sidebar {
+    transition: none;
+  }
+}
+/* Override legacy icon-span widths without touching labels elsewhere. */
+.shell-refresh .sidebar nav a > span,
+.shell-refresh .sidebar-bottom > a > span {
+  width: auto;
+  text-align: left;
+  font-size: inherit;
+}

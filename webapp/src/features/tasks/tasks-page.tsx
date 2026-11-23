@@ -213,29 +213,16 @@ export function TaskExplorer({
     }
   }
 
-  function saveFilter() {
-    const name = window.prompt('Name this filter')?.trim()
-    if (!name) return
-    const key = `taskflow.filters.${workspaceId}`
-    const saved = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<
-      string,
-      string
-    >
-    saved[name] = search.toString()
-    localStorage.setItem(key, JSON.stringify(saved))
-  }
-
   const currentProject = projects.data?.projects.find(
     (project) => project.id === projectId,
   )
   const detailId = search.get('task')
   const statuses = Object.keys(statusLabels) as TaskStatus[]
-  const savedFilters = JSON.parse(
-    localStorage.getItem(`taskflow.filters.${workspaceId}`) ?? '{}',
-  ) as Record<string, string>
 
   return (
-    <div className={`page task-page ${view === 'board' ? 'task-page--board' : ''}`}>
+    <div
+      className={`page task-page ${view === 'board' ? 'task-page--board' : ''}`}
+    >
       <header className="page-header task-header">
         <div>
           <p className="eyebrow">{currentProject?.key ?? 'All work'}</p>
@@ -248,7 +235,7 @@ export function TaskExplorer({
         <div className="header-actions">
           {projectId && canWrite && (
             <Link className="button secondary" to="/projects?new=true">
-              New project
+              Project
             </Link>
           )}
           {canWrite && projects.data?.projects.length ? (
@@ -281,126 +268,173 @@ export function TaskExplorer({
         </nav>
       )}
 
-      <section className="task-toolbar" aria-label="Task filters">
-        <label className="search-field">
-          <span aria-hidden="true">⌕</span>
-          <span className="sr-only">Search tasks</span>
+      <section
+        className="task-toolbar task-toolbar--compact"
+        aria-label="Task search and filters"
+      >
+        <div className="task-search">
+          <svg
+            viewBox="0 0 24 24"
+            width="19"
+            height="19"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m16 16 4 4" />
+          </svg>
+
           <input
-            key={search.get('q')}
+            type="search"
+            aria-label="Search tasks"
+            key={search.get('q') ?? ''}
             defaultValue={search.get('q') ?? ''}
-            placeholder="Search tasks…"
+            placeholder="Search tasks by title or description..."
             onChange={(event) => {
               window.clearTimeout(searchTimer.current)
-              const value = event.currentTarget.value
-              searchTimer.current = window.setTimeout(
-                () => setParam('q', value),
-                350,
-              )
+              const value = event.target.value
+
+              searchTimer.current = window.setTimeout(() => {
+                setParam('q', value.trim() || undefined)
+              }, 350)
             }}
           />
-        </label>
-        <select
-          aria-label="Filter by status"
-          value={search.get('status') ?? ''}
-          onChange={(event) => setParam('status', event.target.value)}
-        >
-          <option value="">All statuses</option>
-          {statuses.map((status) => (
-            <option key={status} value={status}>
-              {statusLabels[status]}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Filter by priority"
-          value={search.get('priority') ?? ''}
-          onChange={(event) => setParam('priority', event.target.value)}
-        >
-          <option value="">All priorities</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-          <option value="none">None</option>
-        </select>
-        <select
-          aria-label="Filter by assignee"
-          value={search.get('assigneeId') ?? ''}
-          onChange={(event) => setParam('assigneeId', event.target.value)}
-        >
-          <option value="">All assignees</option>
-          {members.data?.members
-            .filter((member) => member.status === 'active')
-            .map((member) => (
-              <option key={member.userId} value={member.userId}>
-                {member.userName || member.userId}
-              </option>
-            ))}
-        </select>
-        <select
-          aria-label="Sort tasks"
-          value={search.get('sort') ?? 'position'}
-          onChange={(event) => setParam('sort', event.target.value)}
-        >
-          <option value="position">Board order</option>
-          <option value="due">Due date</option>
-          <option value="priority">Priority</option>
-          <option value="title">Title</option>
-        </select>
-        <select
-          aria-label="Filter by label"
-          value={search.get('labelId') ?? ''}
-          onChange={(event) => setParam('labelId', event.target.value)}
-        >
-          <option value="">All labels</option>
-          {labels.data?.labels.map((label) => (
-            <option key={label.id} value={label.id}>
-              {label.name}
-            </option>
-          ))}
-        </select>
-        {canWrite && (
-          <Link className="button secondary compact" to="/settings/labels">
-            Manage labels
-          </Link>
-        )}
-        {Object.keys(savedFilters).length ? (
-          <select
-            aria-label="Open saved filter"
-            defaultValue=""
-            onChange={(event) => {
-              const saved = savedFilters[event.target.value]
-              if (saved !== undefined) setSearch(saved, { replace: true })
-              event.target.value = ''
-            }}
-          >
-            <option value="">Saved filters</option>
-            {Object.keys(savedFilters).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <button
-          className="button secondary compact"
-          type="button"
-          onClick={saveFilter}
-        >
-          Save filter
-        </button>
-        <button
-          className={`button secondary compact ${search.get('archived') === 'true' ? 'active' : ''}`}
-          type="button"
-          onClick={() =>
-            setParam(
-              'archived',
-              search.get('archived') === 'true' ? undefined : 'true',
-            )
-          }
-        >
-          Archived
-        </button>
+        </div>
+
+        <details className="task-filter-dropdown">
+          <summary>
+            <span>Filters</span>
+            {['status', 'priority', 'assigneeId', 'labelId', 'archived'].filter(
+              (key) => search.has(key),
+            ).length > 0 && (
+              <span className="filter-count">
+                {
+                  [
+                    'status',
+                    'priority',
+                    'assigneeId',
+                    'labelId',
+                    'archived',
+                  ].filter((key) => search.has(key)).length
+                }
+              </span>
+            )}
+          </summary>
+
+          <div className="task-filter-panel">
+            <label>
+              Status
+              <select
+                value={search.get('status') ?? ''}
+                onChange={(event) => setParam('status', event.target.value)}
+              >
+                <option value="">All statuses</option>
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {statusLabels[status]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Priority
+              <select
+                value={search.get('priority') ?? ''}
+                onChange={(event) => setParam('priority', event.target.value)}
+              >
+                <option value="">All priorities</option>
+                {['urgent', 'high', 'medium', 'low', 'none'].map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priority}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Assignee
+              <select
+                value={search.get('assigneeId') ?? ''}
+                onChange={(event) => setParam('assigneeId', event.target.value)}
+              >
+                <option value="">All assignees</option>
+                {members.data?.members
+                  .filter((member) => member.status === 'active')
+                  .map((member) => (
+                    <option key={member.userId} value={member.userId}>
+                      {member.userName || member.userId}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            <label>
+              Label
+              <select
+                value={search.get('labelId') ?? ''}
+                onChange={(event) => setParam('labelId', event.target.value)}
+              >
+                <option value="">All labels</option>
+                {labels.data?.labels.map((label) => (
+                  <option key={label.id} value={label.id}>
+                    {label.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Sort by
+              <select
+                value={search.get('sort') ?? 'position'}
+                onChange={(event) => setParam('sort', event.target.value)}
+              >
+                <option value="position">Board order</option>
+                <option value="due">Due date</option>
+                <option value="priority">Priority</option>
+                <option value="title">Title</option>
+              </select>
+            </label>
+
+            <label className="filter-checkbox">
+              <input
+                type="checkbox"
+                checked={search.get('archived') === 'true'}
+                onChange={(event) =>
+                  setParam(
+                    'archived',
+                    event.target.checked ? 'true' : undefined,
+                  )
+                }
+              />
+              Include archived tasks
+            </label>
+
+            <button
+              className="filter-clear"
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(search)
+                for (const key of [
+                  'status',
+                  'priority',
+                  'assigneeId',
+                  'labelId',
+                  'sort',
+                  'archived',
+                ]) {
+                  next.delete(key)
+                }
+                setSearch(next, { replace: true })
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+        </details>
       </section>
 
       {error && (

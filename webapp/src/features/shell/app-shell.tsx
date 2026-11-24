@@ -111,13 +111,11 @@ function Shell() {
   const { user, logout } = useAuth()
   const { workspace } = useWorkspace()
   const location = useLocation()
-  const [moreOpen, setMoreOpen] = useState(false)
-  useEffect(() => {
-    setMoreOpen(false)
-  }, [location.pathname])
+  const [moreMenuPath, setMoreMenuPath] = useState<string | null>(null)
+  const moreOpen = moreMenuPath === location.pathname
   useEffect(() => {
     function onEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setMoreOpen(false)
+      if (event.key === 'Escape') setMoreMenuPath(null)
     }
     window.addEventListener('keydown', onEscape)
     return () => window.removeEventListener('keydown', onEscape)
@@ -205,7 +203,11 @@ function Shell() {
         <button
           type="button"
           className={moreOpen ? 'active' : ''}
-          onClick={() => setMoreOpen((current) => !current)}
+          onClick={() =>
+            setMoreMenuPath((current) =>
+              current === location.pathname ? null : location.pathname,
+            )
+          }
           aria-expanded={moreOpen}
           aria-controls="mobile-more-menu"
         >
@@ -219,7 +221,7 @@ function Shell() {
             className="mobile-more-scrim"
             type="button"
             aria-label="Close more menu"
-            onClick={() => setMoreOpen(false)}
+            onClick={() => setMoreMenuPath(null)}
           />
           <section
             className="mobile-more-sheet"
@@ -232,7 +234,7 @@ function Shell() {
                 className="icon-button"
                 type="button"
                 aria-label="Close menu"
-                onClick={() => setMoreOpen(false)}
+                onClick={() => setMoreMenuPath(null)}
               >
                 <NavIcon name="close" />
               </button>

@@ -368,7 +368,7 @@ export function TaskExplorer({
         ),
       )
       const archived = selectedTasks.filter(
-        (_, index) => outcomes[index].status === 'fulfilled',
+        (_, index) => outcomes[index]?.status === 'fulfilled',
       )
       const failed = outcomes.length - archived.length
       if (failed)

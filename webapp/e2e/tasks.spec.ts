@@ -130,7 +130,9 @@ test('runs the primary workspace and task workflow', async ({
   await page.getByLabel('Name', { exact: true }).fill(workspace.name)
   await page.getByRole('button', { name: 'Create workspace' }).click()
   await expect(
-    page.getByText(workspace.name, { exact: true }).first(),
+    page.getByRole('button', {
+      name: new RegExp(`${workspace.name} ${workspace.id}`),
+    }),
   ).toBeVisible()
 
   await page.goto('/projects')

@@ -76,7 +76,7 @@ test('restores a refresh-cookie session and logs out across tabs', async ({
   await expect(
     page.getByRole('heading', { name: 'Create or open a workspace' }),
   ).toBeVisible()
-  const menuButton = page.getByRole('button', { name: 'Open navigation' })
+  const menuButton = page.getByRole('button', { name: 'More' })
   if (await menuButton.isVisible()) await menuButton.click()
   const secondPage = await context.newPage()
   await secondPage.goto('/tasks')

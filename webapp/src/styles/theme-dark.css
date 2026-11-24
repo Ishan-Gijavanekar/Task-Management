@@ -1,0 +1,428 @@
+/* Persistent, opt-in dark palette. Overrides intentional hardcoded light surfaces
+   in the current Taskflow UI refresh, without altering server-side state. */
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-canvas: #111a17;
+  --bg-surface: #1a2621;
+  --bg-subtle: #24342d;
+  --border-subtle: #35473e;
+  --border-strong: #516457;
+  --text-primary: #eff4f0;
+  --text-secondary: #bccac0;
+  --text-tertiary: #95a89c;
+  --accent-primary: #67d5b7;
+  --accent-hover: #89e3c9;
+  --accent-focus: rgb(103 213 183 / 21%);
+  --status-success-bg: #173a2c;
+  --status-success-border: #2e6950;
+  --status-success-text: #9de5c0;
+  --status-warning-bg: #3a3020;
+  --status-warning-border: #6d5836;
+  --status-warning-text: #f0ce88;
+  --status-danger-bg: #402725;
+  --status-danger-border: #79504b;
+  --status-danger-text: #f5b5aa;
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --canvas: var(--bg-canvas);
+  --surface: var(--bg-surface);
+  --surface-soft: var(--bg-subtle);
+  --line: var(--border-subtle);
+  --brand: var(--accent-primary);
+  --brand-dark: var(--accent-hover);
+  --navy: var(--bg-surface);
+  --success: var(--status-success-text);
+  --danger: var(--status-danger-text);
+  --blue: var(--accent-primary);
+  --amber: var(--status-warning-text);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 15%);
+  --shadow: 0 10px 30px rgb(0 0 0 / 28%);
+}
+html[data-theme='dark'],
+html[data-theme='dark'] body,
+html[data-theme='dark'] #root {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+}
+html[data-theme='dark'] input,
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] select,
+html[data-theme='dark'] option {
+  color-scheme: dark;
+}
+html[data-theme='dark']
+  input:not([type='checkbox']):not([type='radio']):not([type='color']),
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] select {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder {
+  color: var(--text-tertiary);
+}
+html[data-theme='dark'] button:focus-visible,
+html[data-theme='dark'] a:focus-visible {
+  outline-color: var(--accent-primary);
+}
+html[data-theme='dark'] .button.primary,
+html[data-theme='dark'] .button-primary,
+html[data-theme='dark'] .dashboard-cta,
+html[data-theme='dark'] .dashboard-cta:hover {
+  color: #0a2923;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+html[data-theme='dark'] .button.primary:hover,
+html[data-theme='dark'] .button-primary:hover {
+  color: #08271e;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+html[data-theme='dark'] .button.secondary,
+html[data-theme='dark'] .button.danger,
+html[data-theme='dark'] .button.ghost {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+}
+html[data-theme='dark'] .button.secondary:hover,
+html[data-theme='dark'] .button.danger:hover {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .panel,
+html[data-theme='dark'] .metric-card,
+html[data-theme='dark'] .dialog-card,
+html[data-theme='dark'] .sidebar,
+html[data-theme='dark'] .mobile-tabs,
+html[data-theme='dark'] .mobile-more-sheet,
+html[data-theme='dark'] .workspace-switcher,
+html[data-theme='dark'] .task-toolbar,
+html[data-theme='dark'] .project-card,
+html[data-theme='dark'] .task-list,
+html[data-theme='dark'] .task-bulk-bar,
+html[data-theme='dark'] .task-toast,
+html[data-theme='dark'] .dashboard-stat,
+html[data-theme='dark'] .dashboard-panel,
+html[data-theme='dark'] .dashboard-message {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+html[data-theme='dark'] .sidebar nav a.active,
+html[data-theme='dark'] .sidebar-bottom > a.active {
+  background: #234238;
+  color: var(--accent-primary);
+}
+html[data-theme='dark'] .sidebar nav a:hover,
+html[data-theme='dark'] .sidebar-bottom > a:hover,
+html[data-theme='dark'] .workspace-switcher:hover {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .brand-mark,
+html[data-theme='dark'] .lab-brandmark {
+  color: #092e27;
+}
+html[data-theme='dark'] .workspace-avatar,
+html[data-theme='dark'] .profile-avatar {
+  background: #284b3f;
+  color: #b2e8d3;
+}
+html[data-theme='dark'] .mobile-tabs a.active,
+html[data-theme='dark'] .mobile-tabs button.active {
+  background: #254237;
+  color: var(--accent-primary);
+}
+html[data-theme='dark'] .mobile-more-sheet > a,
+html[data-theme='dark'] .mobile-signout {
+  background: transparent;
+  color: var(--text-primary);
+}
+html[data-theme='dark'] .mobile-more-sheet > a:hover,
+html[data-theme='dark'] .mobile-signout:hover {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .task-page .task-toolbar,
+html[data-theme='dark'] .task-page .task-search,
+html[data-theme='dark'] .task-page .task-filter-dropdown > summary,
+html[data-theme='dark'] .task-filter-panel,
+html[data-theme='dark'] .label-dropdown summary,
+html[data-theme='dark'] .label-menu,
+html[data-theme='dark'] .task-filter-pill {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+html[data-theme='dark'] .task-filter-pill {
+  background: #254339;
+  color: #b6e6d4;
+}
+html[data-theme='dark'] .filter-count {
+  background: #254339;
+  color: #b6e6d4;
+}
+html[data-theme='dark'] .task-board .board-column {
+  --stage: #92a1b0;
+  --stage-muted: #1d2926;
+  --stage-header: #2d3b37;
+  --stage-border: #354840;
+}
+html[data-theme='dark'] .task-board .board-column[data-status='backlog'] {
+  --stage: #abbacb;
+  --stage-muted: #1c262c;
+  --stage-header: #2b3944;
+  --stage-border: #3e5360;
+}
+html[data-theme='dark'] .task-board .board-column[data-status='todo'] {
+  --stage: #f0cb7d;
+  --stage-muted: #2c291f;
+  --stage-header: #403624;
+  --stage-border: #605035;
+}
+html[data-theme='dark'] .task-board .board-column[data-status='in_progress'] {
+  --stage: #79d6bf;
+  --stage-muted: #1b2d29;
+  --stage-header: #28473d;
+  --stage-border: #3d6153;
+}
+html[data-theme='dark'] .task-board .board-column[data-status='blocked'] {
+  --stage: #ec9d88;
+  --stage-muted: #302622;
+  --stage-header: #49342f;
+  --stage-border: #64443d;
+}
+html[data-theme='dark'] .task-board .board-column[data-status='done'] {
+  --stage: #8bdaa6;
+  --stage-muted: #1c2b22;
+  --stage-header: #2d4936;
+  --stage-border: #45664f;
+}
+html[data-theme='dark'] .task-board .board-column[data-status='cancelled'] {
+  --stage: #a4adb6;
+  --stage-muted: #23282b;
+  --stage-header: #343a3f;
+  --stage-border: #48525b;
+}
+html[data-theme='dark'] .task-board .board-column {
+  background: var(--stage-muted);
+  border-color: var(--stage-border);
+  border-top-color: var(--stage);
+}
+html[data-theme='dark'] .task-board .board-column > header {
+  background: var(--stage-header);
+}
+html[data-theme='dark'] .task-board .board-column > header span:last-child {
+  background: var(--bg-surface);
+  border-color: var(--stage-border);
+  color: var(--text-primary);
+}
+html[data-theme='dark'] .task-board .task-card {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  border-left-color: var(--stage);
+}
+html[data-theme='dark'] .task-board .task-card:hover {
+  border-color: var(--border-strong);
+  border-left-color: var(--stage);
+}
+html[data-theme='dark'] .task-board .board-empty {
+  background: rgb(0 0 0 / 12%);
+  border-color: var(--stage-border);
+}
+html[data-theme='dark'] .task-board .move-select select {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .task-list-head,
+html[data-theme='dark'] .task-list-head-wrap {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .task-list-row {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+html[data-theme='dark'] .task-list-row:hover,
+html[data-theme='dark'] .task-list-entry:hover {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .task-list-entry {
+  border-color: var(--border-subtle);
+}
+html[data-theme='dark'] .task-labels > span,
+html[data-theme='dark'] .status-chip,
+html[data-theme='dark'] .tag-list span,
+html[data-theme='dark'] .role-chip {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+html[data-theme='dark'] .status-chip.done {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  border-color: var(--status-success-border);
+}
+html[data-theme='dark'] .status-chip.blocked {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border-color: var(--status-danger-border);
+}
+html[data-theme='dark'] .status-chip.todo {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border-color: var(--status-warning-border);
+}
+html[data-theme='dark'] .status-chip.in_progress {
+  background: #1a3b34;
+  color: #9ee9d4;
+  border-color: #3b6b5e;
+}
+html[data-theme='dark'] .task-labels > span {
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .priority.urgent {
+  color: #f5b5aa;
+}
+html[data-theme='dark'] .priority.high {
+  color: #f2c08a;
+}
+html[data-theme='dark'] .priority.medium {
+  color: #dfc98d;
+}
+html[data-theme='dark'] .priority.low {
+  color: #a6dfbd;
+}
+html[data-theme='dark'] .task-active-filters .task-filter-reset {
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .dashboard-stat-primary {
+  background: #244137;
+  border-color: #385b4c;
+}
+html[data-theme='dark'] .dashboard-stat-symbol {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .dashboard-progress-ring::before {
+  background: var(--bg-surface);
+}
+html[data-theme='dark'] .dashboard-progress-ring {
+  background: conic-gradient(
+    var(--accent-primary) 0 var(--progress),
+    var(--border-subtle) var(--progress) 100%
+  );
+}
+html[data-theme='dark'] .dashboard-focus-row:hover {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .dashboard-error {
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+}
+html[data-theme='dark'] .dashboard-data-note {
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .project-symbol {
+  background: #24453b;
+  color: #afe0ce;
+}
+html[data-theme='dark'] .project-symbol.tone-1 {
+  background: #403624;
+  color: #f0cb7d;
+}
+html[data-theme='dark'] .project-symbol.tone-2 {
+  background: #44352b;
+  color: #e0bba0;
+}
+html[data-theme='dark'] .project-symbol.tone-3 {
+  background: #294336;
+  color: #abd7b9;
+}
+html[data-theme='dark'] .workspace-list > div.selected {
+  background: #26473b;
+  border-color: #3e705d;
+}
+html[data-theme='dark'] .onboarding-mark {
+  background: #284b3f;
+  color: #b2e8d3;
+}
+html[data-theme='dark'] .auth-layout,
+html[data-theme='dark'] .auth-main {
+  background: var(--bg-canvas);
+}
+html[data-theme='dark'] .auth-story {
+  background: #1b3129;
+  border-color: #355347;
+}
+html[data-theme='dark'] .auth-story blockquote {
+  border-color: #416256;
+}
+html[data-theme='dark'] .auth-card {
+  background: transparent;
+}
+html[data-theme='dark'] .settings-link:hover,
+html[data-theme='dark'] .notification-list > a:hover {
+  background: var(--bg-subtle);
+}
+html[data-theme='dark'] .settings-icon,
+html[data-theme='dark'] .notification-icon {
+  background: #27453b;
+  color: #a8e2ce;
+}
+html[data-theme='dark'] .notification-list > a.unread {
+  background: #213b32;
+}
+html[data-theme='dark'] .label-menu,
+html[data-theme='dark'] .label-list > div,
+html[data-theme='dark'] .member-row {
+  border-color: var(--border-subtle);
+}
+html[data-theme='dark'] .comment-list article,
+html[data-theme='dark'] .detail-grid > div {
+  background: var(--bg-subtle);
+  border-color: var(--border-subtle);
+}
+/* Interactive UI lab, when installed. */
+html[data-theme='dark'] .lab-topbar,
+html[data-theme='dark'] .lab-metric,
+html[data-theme='dark'] .lab-workspace,
+html[data-theme='dark'] .lab-filter-pop,
+html[data-theme='dark'] .lab-filter-chips > button,
+html[data-theme='dark'] .lab-search,
+html[data-theme='dark'] .lab-status,
+html[data-theme='dark'] .lab-toast,
+html[data-theme='dark'] .lab-drawer {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+html[data-theme='dark'] .lab-metric:first-child {
+  background: #244137;
+  border-color: #385b4c;
+}
+html[data-theme='dark'] .lab-filter-chips > button[aria-pressed='true'] {
+  background: #24483b;
+  color: #ade8d3;
+  border-color: #3e6f5f;
+}
+html[data-theme='dark'] .lab-table th {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+html[data-theme='dark'] .lab-table td {
+  border-color: var(--border-subtle);
+}
+html[data-theme='dark'] .lab-table tbody tr:hover,
+html[data-theme='dark'] .lab-table tbody tr.lab-selected {
+  background: #263c32;
+}
+html[data-theme='dark'] .lab-active-filters button,
+html[data-theme='dark'] .lab-status-in-progress {
+  background: #26483d;
+  color: #ade8d3;
+  border-color: #3d6e5b;
+}
+html[data-theme='dark'] .lab-skeleton-row i {
+  background: linear-gradient(90deg, #2d3a34 30%, #3c5145 50%, #2d3a34 70%);
+}

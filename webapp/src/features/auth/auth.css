@@ -1,0 +1,110 @@
+.auth-layout {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(330px, 42%) minmax(0, 1fr);
+  background: #fff;
+}
+.auth-story {
+  min-height: 100dvh;
+  padding: clamp(40px, 6vw, 88px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 70px;
+  background: #eaf4ee;
+  border-right: 1px solid #dce7e1;
+}
+.auth-story .brand {
+  color: var(--text-primary);
+}
+.auth-story h1 {
+  max-width: 500px;
+  font-size: clamp(30px, 3vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.auth-story p:not(.eyebrow) {
+  max-width: 390px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.auth-story blockquote {
+  margin: 0;
+  max-width: 440px;
+  padding: 16px 0 0;
+  border-top: 1px solid #cedfd5;
+  color: var(--text-secondary);
+}
+.auth-main {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 32px;
+}
+.mobile-brand {
+  display: none;
+}
+.auth-card {
+  width: min(100%, 420px);
+}
+.auth-card h1 {
+  margin: 0 0 8px;
+}
+.auth-intro {
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+.auth-card form {
+  display: grid;
+  gap: 16px;
+}
+.auth-switch {
+  margin-top: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.success-panel,
+.status-panel {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px;
+  text-align: center;
+}
+.success-panel > span,
+.status-panel > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  font-size: 24px;
+}
+.status-panel.error > span {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+.success-panel p {
+  color: var(--text-secondary);
+}
+@media (max-width: 850px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+  .auth-story {
+    display: none;
+  }
+  .auth-main {
+    min-height: 100dvh;
+    align-content: center;
+    padding: 24px 16px;
+  }
+  .mobile-brand {
+    width: min(100%, 420px);
+    display: block;
+  }
+}

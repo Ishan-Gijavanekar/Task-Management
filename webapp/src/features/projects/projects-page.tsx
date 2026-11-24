@@ -1,3 +1,4 @@
+import './projects.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import {
@@ -128,7 +129,20 @@ function ProjectList() {
                   aria-label={`Settings for ${project.name}`}
                   to={`${project.id}/settings`}
                 >
-                  ⚙
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6a8 8 0 0 0-1.7 1L5 6 3 9.5 5 11a7 7 0 0 0 0 2l-2 1.5L5 18l2.3-1a8 8 0 0 0 1.7 1l.5 3h5l.4-3a8 8 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z" />
+                  </svg>
                 </Link>
               </div>
             </article>

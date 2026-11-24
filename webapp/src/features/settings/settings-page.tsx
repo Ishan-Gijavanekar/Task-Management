@@ -1,3 +1,4 @@
+import './settings.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'

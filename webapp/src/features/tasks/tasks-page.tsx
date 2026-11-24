@@ -1,3 +1,5 @@
+import './tasks.css'
+import './board-refresh.css'
 import {
   type InfiniteData,
   useInfiniteQuery,
@@ -5,7 +7,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { ApiError, errorMessage } from '../../api/errors'
@@ -58,6 +60,12 @@ export function TaskExplorer({
     status: TaskStatus
   } | null>(null)
   const searchTimer = useRef<number | undefined>(undefined)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [busyBulk, setBusyBulk] = useState(false)
+  const [undoTasks, setUndoTasks] = useState<TaskRecord[] | null>(null)
+  const [toastMessage, setToastMessage] = useState('')
+  const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const workspaceId = workspace!.id
 
   const projects = useQuery({
@@ -107,21 +115,23 @@ export function TaskExplorer({
   const allTasks = useMemo(() => {
     const items = tasks.data?.pages.flatMap((page) => page.tasks) ?? []
     const sort = search.get('sort') ?? 'position'
-    return [...items].sort((left, right) => {
+    const ordered = [...items].sort((left, right) => {
       if (sort === 'due')
         return (left.dueDate ?? '9999').localeCompare(right.dueDate ?? '9999')
       if (sort === 'priority')
         return priorityRank[left.priority] - priorityRank[right.priority]
       if (sort === 'title') return left.title.localeCompare(right.title)
+      if (sort === 'status') return left.status.localeCompare(right.status)
       return left.position - right.position
     })
+    return search.get('direction') === 'desc' ? ordered.reverse() : ordered
   }, [search, tasks.data])
 
   const replaceInLists = (replacement: TaskRecord) => {
     queryClient.setQueriesData<InfiniteData<TaskPage>>(
       { queryKey: ['tasks', workspaceId] },
       (data) =>
-        data
+        data && Array.isArray(data.pages)
           ? {
               ...data,
               pages: data.pages.map((page) => ({
@@ -218,6 +228,198 @@ export function TaskExplorer({
   )
   const detailId = search.get('task')
   const statuses = Object.keys(statusLabels) as TaskStatus[]
+  const selectedTasks = allTasks.filter((task) => selectedIds.includes(task.id))
+  const allSelected =
+    allTasks.length > 0 && selectedTasks.length === allTasks.length
+  const activeFilters = [
+    'q',
+    'status',
+    'priority',
+    'assigneeId',
+    'labelId',
+    'archived',
+  ].filter((key) => search.get(key))
+
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      const element = event.target as HTMLElement | null
+      const typing =
+        element?.matches('input, textarea, select, [contenteditable="true"]') ??
+        false
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+      if (event.key === 'Escape') {
+        setCreating(false)
+        setSearch(
+          (current) => {
+            if (!current.has('task')) return current
+            const next = new URLSearchParams(current)
+            next.delete('task')
+            return next
+          },
+          { replace: true },
+        )
+      }
+      if (
+        event.key.toLowerCase() === 'n' &&
+        !typing &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        canWrite &&
+        projects.data?.projects.length
+      ) {
+        event.preventDefault()
+        setCreating(true)
+      }
+    }
+    window.addEventListener('keydown', shortcut)
+    return () => window.removeEventListener('keydown', shortcut)
+  }, [canWrite, projects.data?.projects.length, setSearch])
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(searchTimer.current)
+      if (toastTimeout.current) clearTimeout(toastTimeout.current)
+    },
+    [],
+  )
+
+  function sortBy(column: 'title' | 'status' | 'priority' | 'due') {
+    setSearch(
+      (current) => {
+        const next = new URLSearchParams(current)
+        const same = next.get('sort') === column
+        next.set('sort', column)
+        next.set(
+          'direction',
+          same && next.get('direction') !== 'desc' ? 'desc' : 'asc',
+        )
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  async function changeSelected(status: TaskStatus) {
+    const eligible = selectedTasks.filter((task) =>
+      transitions[task.status].includes(status),
+    )
+    const skipped = selectedTasks.length - eligible.length
+    setBusyBulk(true)
+    try {
+      const outcomes = await Promise.allSettled(
+        eligible.map((task) =>
+          api.updateTask(
+            workspaceId,
+            task.id,
+            taskPayload(task, { status }),
+            crypto.randomUUID(),
+          ),
+        ),
+      )
+      const failed = outcomes.filter(
+        (result) => result.status === 'rejected',
+      ).length
+      setError(
+        failed || skipped
+          ? `${failed} updates failed; ${skipped} transitions not permitted. Refresh to review the latest task states.`
+          : '',
+      )
+      setSelectedIds([])
+      await queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId] })
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
+  async function archiveSelected() {
+    if (!selectedTasks.length || busyBulk) return
+    setBusyBulk(true)
+    const snapshot = queryClient.getQueriesData<InfiniteData<TaskPage>>({
+      queryKey: ['tasks', workspaceId],
+    })
+    const ids = new Set(selectedTasks.map((task) => task.id))
+    queryClient.setQueriesData<InfiniteData<TaskPage>>(
+      { queryKey: ['tasks', workspaceId] },
+      (data) =>
+        data && Array.isArray(data.pages)
+          ? {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                tasks: page.tasks.filter((task) => !ids.has(task.id)),
+              })),
+            }
+          : data,
+    )
+    setSelectedIds([])
+    try {
+      const outcomes = await Promise.allSettled(
+        selectedTasks.map((task) =>
+          api.archiveTask(
+            workspaceId,
+            task.id,
+            task.version,
+            crypto.randomUUID(),
+          ),
+        ),
+      )
+      const archived = selectedTasks.filter(
+        (_, index) => outcomes[index].status === 'fulfilled',
+      )
+      const failed = outcomes.length - archived.length
+      if (failed)
+        setError(`${failed} tasks could not be archived. Task list refreshed.`)
+      await queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId] })
+      if (archived.length) {
+        setUndoTasks(archived)
+        setToastMessage(
+          `${archived.length} task${archived.length === 1 ? '' : 's'} archived`,
+        )
+        if (toastTimeout.current) clearTimeout(toastTimeout.current)
+        toastTimeout.current = setTimeout(() => {
+          setUndoTasks(null)
+          setToastMessage('')
+        }, 5000)
+      }
+    } catch (cause) {
+      snapshot.forEach(([key, data]) => queryClient.setQueryData(key, data))
+      setError(errorMessage(cause))
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
+  async function undoArchive() {
+    if (!undoTasks) return
+    const target = undoTasks
+    setUndoTasks(null)
+    if (toastTimeout.current) clearTimeout(toastTimeout.current)
+    setToastMessage('Restoring tasks…')
+    const outcomes = await Promise.allSettled(
+      target.map(async (task) => {
+        const latest = await api.getTask(workspaceId, task.id, true)
+        return api.restoreTask(
+          workspaceId,
+          task.id,
+          latest.version,
+          crypto.randomUUID(),
+        )
+      }),
+    )
+    const failed = outcomes.filter(
+      (result) => result.status === 'rejected',
+    ).length
+    setToastMessage(
+      failed
+        ? `${failed} restores failed. Check the task list.`
+        : 'Tasks restored',
+    )
+    await queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId] })
+  }
 
   return (
     <div
@@ -287,6 +489,7 @@ export function TaskExplorer({
           </svg>
 
           <input
+            ref={searchInputRef}
             type="search"
             aria-label="Search tasks"
             key={search.get('q') ?? ''}
@@ -396,6 +599,7 @@ export function TaskExplorer({
                 <option value="due">Due date</option>
                 <option value="priority">Priority</option>
                 <option value="title">Title</option>
+                <option value="status">Status</option>
               </select>
             </label>
 
@@ -424,6 +628,7 @@ export function TaskExplorer({
                   'assigneeId',
                   'labelId',
                   'sort',
+                  'direction',
                   'archived',
                 ]) {
                   next.delete(key)
@@ -437,6 +642,47 @@ export function TaskExplorer({
         </details>
       </section>
 
+      {activeFilters.length > 0 && (
+        <div className="task-active-filters" aria-label="Active filters">
+          {activeFilters.map((key) => (
+            <button
+              className="task-filter-pill"
+              type="button"
+              key={key}
+              onClick={() => setParam(key)}
+            >
+              {key === 'q'
+                ? 'Search'
+                : key === 'assigneeId'
+                  ? 'Assignee'
+                  : key === 'labelId'
+                    ? 'Label'
+                    : key === 'archived'
+                      ? 'Archived'
+                      : key}
+              : {search.get(key)} ×
+            </button>
+          ))}
+          <button
+            className="task-filter-reset"
+            type="button"
+            onClick={() =>
+              setSearch(
+                (current) => {
+                  const next = new URLSearchParams(current)
+                  activeFilters.forEach((key) => next.delete(key))
+                  next.delete('sort')
+                  next.delete('direction')
+                  return next
+                },
+                { replace: true },
+              )
+            }
+          >
+            Clear all
+          </button>
+        </div>
+      )}
       {error && (
         <div className="notice error" role="alert">
           {error}
@@ -474,9 +720,56 @@ export function TaskExplorer({
 
       {tasks.isLoading ? (
         <LoadingScreen label="Loading tasks" />
+      ) : tasks.isError ? (
+        <div className="notice error" role="alert">
+          Tasks couldn't be loaded.{' '}
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => void tasks.refetch()}
+          >
+            Try again
+          </button>
+        </div>
       ) : !allTasks.length ? (
         <div className="panel">
-          <EmptyState title="No tasks match">
+          <EmptyState
+            title="No tasks match"
+            action={
+              activeFilters.length ? (
+                <button
+                  className="button primary"
+                  type="button"
+                  onClick={() =>
+                    setSearch(
+                      (current) => {
+                        const next = new URLSearchParams(current)
+                        activeFilters.forEach((key) => next.delete(key))
+                        next.delete('sort')
+                        next.delete('direction')
+                        return next
+                      },
+                      { replace: true },
+                    )
+                  }
+                >
+                  Reset filters
+                </button>
+              ) : canWrite && projects.data?.projects.length ? (
+                <button
+                  className="button primary"
+                  type="button"
+                  onClick={() => setCreating(true)}
+                >
+                  Create first task
+                </button>
+              ) : (
+                <Link className="button secondary" to="/projects">
+                  View projects
+                </Link>
+              )
+            }
+          >
             Adjust the filters or create a task to get work moving.
           </EmptyState>
         </div>
@@ -491,6 +784,7 @@ export function TaskExplorer({
             .map((status) => (
               <section
                 className="board-column"
+                data-status={status}
                 key={status}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => {
@@ -509,6 +803,27 @@ export function TaskExplorer({
                   </span>
                 </header>
                 <div className="board-stack">
+                  {!allTasks.some((task) => task.status === status) && (
+                    <div className="board-empty" role="status">
+                      <svg
+                        width="30"
+                        height="30"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="3" y="5" width="18" height="15" rx="2" />
+                        <path d="M7 10h10M7 14h7" />
+                      </svg>
+                      <p>No tasks here</p>
+                      <small>Move a task into this stage</small>
+                    </div>
+                  )}
+
                   {allTasks
                     .filter((task) => task.status === status)
                     .map((task) => (
@@ -527,53 +842,87 @@ export function TaskExplorer({
         </div>
       ) : (
         <div className="task-list panel">
-          <div className="task-list-head">
-            <span>Task</span>
-            <span>Status</span>
-            <span>Priority</span>
-            <span>Due</span>
-            <span>Assignee</span>
+          <div className="task-list-head-wrap">
+            <input
+              type="checkbox"
+              aria-label="Select all loaded tasks"
+              checked={allSelected}
+              onChange={(event) =>
+                setSelectedIds(
+                  event.target.checked ? allTasks.map((task) => task.id) : [],
+                )
+              }
+            />
+            <div className="task-list-head">
+              <button type="button" onClick={() => sortBy('title')}>
+                Task
+              </button>
+              <button type="button" onClick={() => sortBy('status')}>
+                Status
+              </button>
+              <button type="button" onClick={() => sortBy('priority')}>
+                Priority
+              </button>
+              <button type="button" onClick={() => sortBy('due')}>
+                Due
+              </button>
+              <span>Assignee</span>
+            </div>
           </div>
           {allTasks.map((task) => (
-            <button
-              className="task-list-row"
-              key={task.id}
-              type="button"
-              onClick={() => setParam('task', task.id)}
-            >
-              <span>
-                <strong>{task.title}</strong>
-                <small>
-                  {
-                    projects.data?.projects.find(
-                      (project) => project.id === task.projectId,
-                    )?.key
-                  }
-                </small>
-                <TaskLabels
-                  labelIds={task.labelIds}
-                  labels={labels.data?.labels ?? []}
-                />
-              </span>
-              <span className={`status-chip ${task.status}`}>
-                {statusLabels[task.status]}
-              </span>
-              <span className={`priority ${task.priority}`}>
-                {task.priority}
-              </span>
-              <span>
-                {task.dueDate
-                  ? new Intl.DateTimeFormat().format(new Date(task.dueDate))
-                  : '—'}
-              </span>
-              <span>
-                {members.data?.members.find(
-                  (member) => member.userId === task.assigneeId,
-                )?.userName ||
-                  task.assigneeId ||
-                  'Unassigned'}
-              </span>
-            </button>
+            <div className="task-list-entry" key={task.id}>
+              <input
+                type="checkbox"
+                aria-label={`Select ${task.title}`}
+                checked={selectedIds.includes(task.id)}
+                onChange={(event) =>
+                  setSelectedIds((old) =>
+                    event.target.checked
+                      ? [...old, task.id]
+                      : old.filter((id) => id !== task.id),
+                  )
+                }
+              />
+              <button
+                className="task-list-row"
+                key={task.id}
+                type="button"
+                onClick={() => setParam('task', task.id)}
+              >
+                <span>
+                  <strong>{task.title}</strong>
+                  <small>
+                    {
+                      projects.data?.projects.find(
+                        (project) => project.id === task.projectId,
+                      )?.key
+                    }
+                  </small>
+                  <TaskLabels
+                    labelIds={task.labelIds}
+                    labels={labels.data?.labels ?? []}
+                  />
+                </span>
+                <span className={`status-chip ${task.status}`}>
+                  {statusLabels[task.status]}
+                </span>
+                <span className={`priority ${task.priority}`}>
+                  {task.priority}
+                </span>
+                <span>
+                  {task.dueDate
+                    ? new Intl.DateTimeFormat().format(new Date(task.dueDate))
+                    : '—'}
+                </span>
+                <span>
+                  {members.data?.members.find(
+                    (member) => member.userId === task.assigneeId,
+                  )?.userName ||
+                    task.assigneeId ||
+                    'Unassigned'}
+                </span>
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -587,6 +936,69 @@ export function TaskExplorer({
             disabled={tasks.isFetchingNextPage}
           >
             {tasks.isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </button>
+        </div>
+      )}
+
+      {canWrite && selectedTasks.length > 0 && (
+        <div
+          className="task-bulk-bar"
+          role="toolbar"
+          aria-label="Selected task actions"
+        >
+          <strong>{selectedTasks.length} selected</strong>
+          <select
+            aria-label="Change selected task status"
+            defaultValue=""
+            disabled={busyBulk}
+            onChange={(event) => {
+              if (event.target.value)
+                void changeSelected(event.target.value as TaskStatus)
+              event.target.value = ''
+            }}
+          >
+            <option value="">Change status…</option>
+            {statuses.map((status) => (
+              <option key={status} value={status}>
+                {statusLabels[status]}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="button danger"
+            disabled={busyBulk}
+            onClick={() => void archiveSelected()}
+          >
+            Archive
+          </button>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busyBulk}
+            onClick={() => setSelectedIds([])}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+      {toastMessage && (
+        <div className="task-toast" role="status">
+          <span>{toastMessage}</span>
+          {undoTasks && (
+            <button type="button" onClick={() => void undoArchive()}>
+              Undo
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Dismiss notification"
+            onClick={() => {
+              setToastMessage('')
+              setUndoTasks(null)
+            }}
+          >
+            ×
           </button>
         </div>
       )}

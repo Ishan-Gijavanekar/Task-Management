@@ -1,3 +1,4 @@
+import './workspaces.css'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { api } from '../../api/client'

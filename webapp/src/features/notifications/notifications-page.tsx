@@ -1,3 +1,4 @@
+import './notifications.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'

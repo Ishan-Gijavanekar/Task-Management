@@ -1,3 +1,4 @@
+import './invitations.css'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'

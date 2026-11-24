@@ -1,3 +1,4 @@
+import './auth.css'
 import { Outlet } from 'react-router-dom'
 import { Brand } from '../../ui/brand'
 

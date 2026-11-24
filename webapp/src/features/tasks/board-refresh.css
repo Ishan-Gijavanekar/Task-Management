@@ -1,0 +1,368 @@
+/* Board refresh — imported after the existing task styles.
+   Status color denotes the workflow stage. A narrow top-right strip on
+   each card continues to denote task priority independently. */
+.task-page {
+  max-width: none;
+  min-width: 0;
+}
+
+/* Search occupies all space not used by the Filters control. */
+.task-page .task-toolbar,
+.task-page .task-toolbar--compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+.task-page .task-search {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 42px;
+  background: var(--bg-surface);
+}
+.task-page .task-search input[type='search'] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  background: transparent;
+  color: var(--text-primary);
+}
+.task-page .task-filter-dropdown {
+  justify-self: end;
+  flex: none;
+  margin: 0;
+}
+.task-page .task-filter-dropdown > summary {
+  min-height: 42px;
+  white-space: nowrap;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Stage-specific palette — readable in both color and text. */
+.task-board .board-column {
+  --stage: #748293;
+  --stage-muted: #f2f4f6;
+  --stage-header: #e9edf1;
+  --stage-border: #dce3e9;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 348px;
+  padding: 12px;
+  background: var(--stage-muted);
+  border: 1px solid var(--stage-border);
+  border-top: 3px solid var(--stage);
+  border-radius: 11px;
+  scroll-snap-align: start;
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out;
+}
+.task-board .board-column[data-status='backlog'] {
+  --stage: #708096;
+  --stage-muted: #f4f6f8;
+  --stage-header: #e9edf2;
+  --stage-border: #dde4ea;
+}
+.task-board .board-column[data-status='todo'] {
+  --stage: #b98524;
+  --stage-muted: #fdfaf1;
+  --stage-header: #f9edd0;
+  --stage-border: #eedfbc;
+}
+.task-board .board-column[data-status='in_progress'] {
+  --stage: #0f766e;
+  --stage-muted: #f2f9f7;
+  --stage-header: #dbeee8;
+  --stage-border: #c5e1d8;
+}
+.task-board .board-column[data-status='blocked'] {
+  --stage: #b45942;
+  --stage-muted: #fdf7f4;
+  --stage-header: #f8e5de;
+  --stage-border: #ebcfc4;
+}
+.task-board .board-column[data-status='done'] {
+  --stage: #2a7d51;
+  --stage-muted: #f1f8f3;
+  --stage-header: #ddf0e3;
+  --stage-border: #c8e4d1;
+}
+.task-board .board-column[data-status='cancelled'] {
+  --stage: #8a8f98;
+  --stage-muted: #f7f7f7;
+  --stage-header: #edeef0;
+  --stage-border: #e1e2e5;
+}
+.task-board {
+  grid-auto-columns: clamp(268px, 22vw, 322px);
+  gap: 16px;
+  align-items: stretch;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  padding: 2px 2px 20px;
+}
+.task-board .board-column > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  margin: -12px -12px 14px;
+  padding: 10px 12px;
+  background: var(--stage-header);
+  border-radius: 8px 8px 0 0;
+}
+.task-board .board-column > header h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.task-board .board-column > header .status-dot {
+  width: 9px;
+  height: 9px;
+  flex-basis: 9px;
+  background: var(--stage);
+}
+.task-board .board-column > header span:last-child {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 25px;
+  padding: 0 6px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--stage-border);
+  border-radius: 7px;
+  font: 500 12px var(--font-mono);
+}
+.task-board .board-stack {
+  display: grid;
+  align-content: start;
+  flex: 1;
+  gap: 11px;
+  min-height: 125px;
+}
+.task-board .task-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--stage);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  transition:
+    border-color 120ms ease-out,
+    transform 120ms ease-out;
+}
+.task-board .task-card:hover {
+  border-color: var(--border-strong);
+  border-left-color: var(--stage);
+  transform: translateY(-1px);
+}
+.task-board .task-card:focus-within {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+/* Workflow stage is on the left; priority remains a short top-right marker. */
+.task-board .priority-bar {
+  left: auto;
+  right: 0;
+  top: 0;
+  bottom: auto;
+  width: 44px;
+  height: 3px;
+  border-radius: 0 8px 0 8px;
+}
+.task-board .task-card-main {
+  gap: 10px;
+  padding: 15px 15px 13px;
+}
+.task-board .task-card-main > strong {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.task-board .task-card-main > p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-height: none;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.task-board .task-meta {
+  padding-top: 9px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+}
+.task-board .move-select {
+  margin: 0 14px 14px;
+}
+.task-board .move-select select {
+  background: var(--bg-surface);
+}
+.task-board .board-empty {
+  min-height: 158px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  padding: 16px;
+  border: 1px dashed var(--stage-border);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.task-board .board-empty svg {
+  color: var(--stage);
+  opacity: 0.75;
+}
+.task-board .board-empty p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.task-board .board-empty small {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+@media (max-width: 767px) {
+  .task-page .task-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .task-page .task-search {
+    min-height: 44px;
+  }
+  .task-page .task-filter-dropdown > summary {
+    min-height: 44px;
+  }
+  .task-board {
+    grid-auto-columns: minmax(260px, 82vw);
+    gap: 12px;
+  }
+  .task-board .board-column {
+    min-height: 300px;
+  }
+}
+@media (max-width: 470px) {
+  .task-page .task-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .task-page .task-filter-dropdown {
+    width: 100%;
+    justify-self: stretch;
+  }
+  .task-page .task-filter-dropdown > summary {
+    justify-content: center;
+  }
+  .task-page .task-filter-panel {
+    left: 0;
+    right: auto;
+    width: min(360px, calc(100vw - 56px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-board .task-card {
+    transition: none;
+  }
+  .task-board .task-card:hover {
+    transform: none;
+  }
+}
+/* Graceful fallback for branches that have not yet added data-status to JSX. */
+.task-board .board-column:nth-child(1):not([data-status]) {
+  --stage: #708096;
+  --stage-muted: #f4f6f8;
+  --stage-header: #e9edf2;
+  --stage-border: #dde4ea;
+}
+.task-board .board-column:nth-child(2):not([data-status]) {
+  --stage: #b98524;
+  --stage-muted: #fdfaf1;
+  --stage-header: #f9edd0;
+  --stage-border: #eedfbc;
+}
+.task-board .board-column:nth-child(3):not([data-status]) {
+  --stage: #0f766e;
+  --stage-muted: #f2f9f7;
+  --stage-header: #dbeee8;
+  --stage-border: #c5e1d8;
+}
+.task-board .board-column:nth-child(4):not([data-status]) {
+  --stage: #b45942;
+  --stage-muted: #fdf7f4;
+  --stage-header: #f8e5de;
+  --stage-border: #ebcfc4;
+}
+.task-board .board-column:nth-child(5):not([data-status]) {
+  --stage: #2a7d51;
+  --stage-muted: #f1f8f3;
+  --stage-header: #ddf0e3;
+  --stage-border: #c8e4d1;
+}
+html[data-theme='dark']
+  .task-board
+  .board-column:nth-child(1):not([data-status]) {
+  --stage: #abbacb;
+  --stage-muted: #1c262c;
+  --stage-header: #2b3944;
+  --stage-border: #3e5360;
+}
+html[data-theme='dark']
+  .task-board
+  .board-column:nth-child(2):not([data-status]) {
+  --stage: #f0cb7d;
+  --stage-muted: #2c291f;
+  --stage-header: #403624;
+  --stage-border: #605035;
+}
+html[data-theme='dark']
+  .task-board
+  .board-column:nth-child(3):not([data-status]) {
+  --stage: #79d6bf;
+  --stage-muted: #1b2d29;
+  --stage-header: #28473d;
+  --stage-border: #3d6153;
+}
+html[data-theme='dark']
+  .task-board
+  .board-column:nth-child(4):not([data-status]) {
+  --stage: #ec9d88;
+  --stage-muted: #302622;
+  --stage-header: #49342f;
+  --stage-border: #64443d;
+}
+html[data-theme='dark']
+  .task-board
+  .board-column:nth-child(5):not([data-status]) {
+  --stage: #8bdaa6;
+  --stage-muted: #1c2b22;
+  --stage-header: #2d4936;
+  --stage-border: #45664f;
+}

@@ -1,3 +1,4 @@
+import './task-form.css'
 import { type FormEvent, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Label, Membership, Project, TaskRecord } from '../../api/types'

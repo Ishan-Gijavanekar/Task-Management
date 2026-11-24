@@ -1,0 +1,63 @@
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+}
+h1 {
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.eyebrow {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.muted {
+  color: var(--text-secondary);
+}
+.text-link.centered {
+  display: block;
+  text-align: center;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 16px var(--font-heading);
+  color: var(--text-primary);
+}
+.brand:hover {
+  text-decoration: none;
+}
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-primary);
+  color: #fff;
+  border-radius: 9px;
+  font: 600 16px var(--font-heading);
+}

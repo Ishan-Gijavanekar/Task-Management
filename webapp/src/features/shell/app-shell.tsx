@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { ThemeToggle } from '../../ui/theme-toggle'
+import { useEffect, useState, type ReactNode } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Brand } from '../../ui/brand'
 import { NetworkStatus } from '../../ui/network-status'
 import { useAuth } from '../auth/auth-context'
@@ -11,74 +12,71 @@ import './app-shell.css'
 
 type IconName =
   | 'home'
-  | 'layers'
-  | 'grid'
-  | 'check'
+  | 'projects'
+  | 'tasks'
   | 'people'
   | 'bell'
   | 'settings'
   | 'logout'
-  | 'menu'
+  | 'more'
   | 'close'
   | 'chevron'
-
+const strokes: Record<IconName, ReactNode> = {
+  home: (
+    <>
+      <path d="M3 10.5 12 3l9 7.5V21H3V10.5Z" />
+      <path d="M9 21v-7h6v7" />
+    </>
+  ),
+  projects: (
+    <>
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+    </>
+  ),
+  tasks: (
+    <>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="m8 12 2.5 2.5L16 9" />
+    </>
+  ),
+  people: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 21v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
+    </>
+  ),
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6a8 8 0 0 0-1.7 1L5 6 3 9.5 5 11a7 7 0 0 0 0 2l-2 1.5L5 18l2.3-1a8 8 0 0 0 1.7 1l.5 3h5l.4-3a8 8 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" />
+      <path d="m15 8 4 4-4 4M9 12h10" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
+  close: <path d="M5 5 19 19M19 5 5 19" />,
+  chevron: <path d="m7 10 5 5 5-5" />,
+}
 function NavIcon({ name }: { name: IconName }) {
-  const paths: Record<IconName, ReactNode> = {
-    home: (
-      <>
-        <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
-        <path d="M9 21v-7h6v7" />
-      </>
-    ),
-    layers: (
-      <>
-        <rect x="3" y="3" width="18" height="18" rx="3" />
-        <path d="M3 9h18M9 9v12" />
-      </>
-    ),
-    grid: (
-      <>
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </>
-    ),
-    check: (
-      <>
-        <rect x="3" y="3" width="18" height="18" rx="3" />
-        <path d="m8 12 3 3 5-6" />
-      </>
-    ),
-    people: (
-      <>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5" />
-      </>
-    ),
-    bell: (
-      <>
-        <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-      </>
-    ),
-    settings: (
-      <>
-        <circle cx="12" cy="12" r="3" />
-        <path
-          d="m19.4 15 1.4 1.1-2 3.5-1.7-.6a9 9 0 0 1-2 1.2l-.3 1.8h-4l-.3-1.8a9 9 0 0 1-2-1.2l-1.7.6-2-3.5L6.2 15a9 9 0 0 1 0-2l-1.4-1.1 2-3.5 1.7.6a9 9 0 0 1 2-1.2L10.8 6h4l.3 1.8a9 9 0 0 1 2 1.2l1.7-.6 2 3.5-1.4 1.1a9 9 0 0 1 0 2Z"
-          transform="translate(0 -2)"
-        />
-      </>
-    ),
-    logout: (
-      <>
-        <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M15 8l4 4-4 4M9 12h10" />
-      </>
-    ),
-    menu: <path d="M4 6h16M4 12h16M4 18h16" />,
-    close: <path d="M5 5l14 14M19 5 5 19" />,
-    chevron: <path d="m7 10 5 5 5-5" />,
-  }
   return (
     <svg
       width="19"
@@ -86,25 +84,22 @@ function NavIcon({ name }: { name: IconName }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.65"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {paths[name]}
+      {strokes[name]}
     </svg>
   )
 }
-
 const navigation: { to: string; label: string; icon: IconName }[] = [
   { to: '/', label: 'Overview', icon: 'home' },
-  { to: '/workspaces', label: 'Workspaces', icon: 'layers' },
-  { to: '/projects', label: 'Projects', icon: 'grid' },
-  { to: '/tasks', label: 'Tasks', icon: 'check' },
+  { to: '/projects', label: 'Projects', icon: 'projects' },
+  { to: '/tasks', label: 'Tasks', icon: 'tasks' },
   { to: '/members', label: 'Members', icon: 'people' },
-  { to: '/notifications', label: 'Notifications', icon: 'bell' },
+  { to: '/notifications', label: 'Inbox', icon: 'bell' },
 ]
-
 export function AppShell() {
   return (
     <WorkspaceProvider>
@@ -112,41 +107,42 @@ export function AppShell() {
     </WorkspaceProvider>
   )
 }
-
 function Shell() {
   const { user, logout } = useAuth()
   const { workspace } = useWorkspace()
-  const [open, setOpen] = useState(false)
+  const location = useLocation()
+  const [moreOpen, setMoreOpen] = useState(false)
+  useEffect(() => {
+    setMoreOpen(false)
+  }, [location.pathname])
+  useEffect(() => {
+    function onEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMoreOpen(false)
+    }
+    window.addEventListener('keydown', onEscape)
+    return () => window.removeEventListener('keydown', onEscape)
+  }, [])
   const initial = user?.name?.trim().slice(0, 2).toUpperCase() || '?'
-
   return (
     <div className="app-shell shell-refresh">
+      <a href="#main-content" className="shell-skip-link">
+        Skip to content
+      </a>
       <NetworkStatus />
-      <aside
-        className={`sidebar ${open ? 'open' : ''}`}
-        aria-label="Application sidebar"
-      >
+      <aside className="sidebar" aria-label="Application sidebar">
         <div className="sidebar-top">
           <Brand />
-          <button
-            className="icon-button close-menu"
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close navigation"
-          >
-            <NavIcon name="close" />
-          </button>
         </div>
-        <div className="shell-sidebar-section-label">CURRENT WORKSPACE</div>
+        <div className="shell-sidebar-section-label">YOUR SPACE</div>
         <NavLink
           className="workspace-switcher"
           to="/workspaces"
-          onClick={() => setOpen(false)}
+          title={workspace?.name ?? 'Switch workspace'}
         >
           <span className="workspace-avatar" aria-hidden="true">
             {workspace?.name.slice(0, 1).toUpperCase() ?? '+'}
           </span>
-          <span>
+          <span className="workspace-name">
             <small>Workspace</small>
             <strong>{workspace?.name ?? 'Choose workspace'}</strong>
           </span>
@@ -156,20 +152,21 @@ function Shell() {
           WORKSPACE
         </div>
         <nav aria-label="Primary navigation">
-          {navigation.map(({ to, label, icon }) => (
+          {navigation.map((item) => (
             <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              onClick={() => setOpen(false)}
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              title={item.label}
             >
-              <NavIcon name={icon} />
-              <span>{label}</span>
+              <NavIcon name={item.icon} />
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <NavLink to="/settings" onClick={() => setOpen(false)}>
+          <ThemeToggle />
+          <NavLink to="/settings" title="Settings">
             <NavIcon name="settings" />
             <span>Settings</span>
           </NavLink>
@@ -177,49 +174,99 @@ function Shell() {
             <span className="profile-avatar" aria-hidden="true">
               {initial}
             </span>
-            <span>
+            <span className="profile-copy">
               <strong>{user?.name || 'Your account'}</strong>
               <small>{user?.email}</small>
             </span>
             <button
-              className="icon-button"
               type="button"
+              className="icon-button"
               onClick={() => void logout()}
-              aria-label="Sign out"
               title="Sign out"
+              aria-label="Sign out"
             >
               <NavIcon name="logout" />
             </button>
           </div>
         </div>
       </aside>
-      {open && (
-        <button
-          className="scrim"
-          type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Close navigation"
-        />
-      )}
       <div className="shell-content">
-        <header className="mobile-header">
-          <button
-            className="icon-button"
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-label="Open navigation"
-          >
-            <NavIcon name="menu" />
-          </button>
-          <Brand />
-          <span className="profile-avatar small" aria-label="Signed-in user">
-            {initial}
-          </span>
-        </header>
-        <main id="main-content">
+        <main id="main-content" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
+      <nav className="mobile-tabs" aria-label="Mobile navigation">
+        {navigation.slice(0, 3).map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.to === '/'}>
+            <NavIcon name={item.icon} />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          className={moreOpen ? 'active' : ''}
+          onClick={() => setMoreOpen((current) => !current)}
+          aria-expanded={moreOpen}
+          aria-controls="mobile-more-menu"
+        >
+          <NavIcon name="more" />
+          <span>More</span>
+        </button>
+      </nav>
+      {moreOpen && (
+        <>
+          <button
+            className="mobile-more-scrim"
+            type="button"
+            aria-label="Close more menu"
+            onClick={() => setMoreOpen(false)}
+          />
+          <section
+            className="mobile-more-sheet"
+            id="mobile-more-menu"
+            aria-label="More destinations"
+          >
+            <div className="mobile-more-heading">
+              <strong>More</strong>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setMoreOpen(false)}
+              >
+                <NavIcon name="close" />
+              </button>
+            </div>
+            {[
+              {
+                to: '/workspaces',
+                label: 'Workspaces',
+                icon: 'projects' as IconName,
+              },
+              ...navigation.slice(3),
+              {
+                to: '/settings',
+                label: 'Settings',
+                icon: 'settings' as IconName,
+              },
+            ].map((item) => (
+              <NavLink key={item.to} to={item.to}>
+                <NavIcon name={item.icon} />
+                {item.label}
+              </NavLink>
+            ))}
+            <ThemeToggle compact />
+            <button
+              type="button"
+              className="mobile-signout"
+              onClick={() => void logout()}
+            >
+              <NavIcon name="logout" />
+              Sign out
+            </button>
+          </section>
+        </>
+      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ import {
 } from './features/auth/auth-pages'
 import { AnonymousRoute, ProtectedRoute } from './features/auth/route-guards'
 import { DashboardPage } from './features/dashboard/dashboard-page'
+import { DesignLabPage } from './features/design-lab/design-lab-page'
 import { MembersPage } from './features/members/members-page'
 import { AcceptInvitationPage } from './features/invitations/accept-invitation-page'
 import { NotificationsPage } from './features/notifications/notifications-page'
@@ -19,12 +20,11 @@ import { AppShell } from './features/shell/app-shell'
 import { TasksPage } from './features/tasks/tasks-page'
 import { WorkspacesPage } from './features/workspaces/workspaces-page'
 import { WorkspaceGate } from './features/workspaces/workspace-gate'
-import './App.css'
-import './Phase14.css'
 
 export default function App() {
   return (
     <Routes>
+      <Route path="ui-lab" element={<DesignLabPage />} />
       <Route element={<AnonymousRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />

@@ -1,0 +1,67 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  min-width: 320px;
+  background: var(--bg-canvas);
+}
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font: 400 14px/1.5 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+}
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+a:hover {
+  text-decoration: underline;
+}
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+}
+::selection {
+  background: #ccfbf1;
+  color: var(--text-primary);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,110 @@
+.theme-toggle {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out;
+}
+.theme-toggle:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.theme-toggle > svg {
+  flex: 0 0 18px;
+}
+.theme-toggle__label {
+  flex: 1;
+  white-space: nowrap;
+}
+.theme-toggle__switch {
+  width: 32px;
+  height: 18px;
+  flex: 0 0 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--border-strong);
+}
+.theme-toggle__switch i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  transition: transform 160ms ease-out;
+}
+.theme-toggle[aria-pressed='true'] .theme-toggle__switch {
+  background: var(--accent-primary);
+}
+.theme-toggle[aria-pressed='true'] .theme-toggle__switch i {
+  background: #0d2924;
+  transform: translateX(14px);
+}
+.theme-toggle--compact {
+  width: auto;
+  min-height: 44px;
+  padding: 0 12px;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar .theme-toggle {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    justify-content: center;
+    padding: 0;
+  }
+  .sidebar .theme-toggle__label,
+  .sidebar .theme-toggle__switch {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .mobile-more-sheet .theme-toggle {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 12px;
+    justify-content: flex-start;
+  }
+  .mobile-header .theme-toggle {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+    border: none;
+  }
+  .mobile-header .theme-toggle__label {
+    display: none;
+  }
+  .theme-mobile-shortcut {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 18;
+  }
+  .theme-mobile-shortcut .theme-toggle {
+    width: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .theme-mobile-shortcut .theme-toggle__label {
+    display: none;
+  }
+}
+@media (min-width: 768px) {
+  .theme-mobile-shortcut {
+    display: none;
+  }
+}

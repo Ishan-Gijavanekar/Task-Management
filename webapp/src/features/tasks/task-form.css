@@ -1,0 +1,107 @@
+.task-form {
+  display: grid;
+  gap: 16px;
+}
+.task-form select[multiple] {
+  min-height: 94px;
+}
+.label-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.label-picker legend {
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.selected-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.selected-labels > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px 4px 9px;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.selected-labels button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+}
+.selected-labels button:hover {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+.label-dropdown {
+  position: relative;
+}
+.label-dropdown summary {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+.label-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+.label-menu {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgb(17 24 39 / 9%);
+}
+.label-menu > input {
+  margin-bottom: 10px;
+}
+.label-options {
+  max-height: 170px;
+  display: grid;
+  gap: 5px;
+  overflow-y: auto;
+}
+.label-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.label-options label:hover {
+  background: var(--bg-subtle);
+}
+.label-options p {
+  padding: 8px;
+  color: var(--text-secondary);
+}
+.label-picker-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+  font-size: 12px;
+}

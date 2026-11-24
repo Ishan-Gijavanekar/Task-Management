@@ -1,0 +1,110 @@
+.settings-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.settings-summary {
+  min-height: 180px;
+}
+.settings-details {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.settings-details > div {
+  display: grid;
+  gap: 3px;
+}
+.settings-details dt,
+.settings-link small,
+.label-list small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.settings-details dd {
+  margin: 0;
+  font-weight: 600;
+}
+.settings-id {
+  font: 12px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.settings-link {
+  min-height: 120px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  color: var(--text-primary);
+}
+.settings-link:hover {
+  text-decoration: none;
+  border-color: var(--border-strong);
+}
+.settings-link > span:nth-child(2) {
+  display: grid;
+  gap: 5px;
+}
+.settings-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--accent-primary);
+  background: #e8f5f2;
+  font-size: 22px;
+}
+.label-create-panel {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.7fr) minmax(0, 1.3fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.label-create-panel form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.label-create-panel .field {
+  flex: 1;
+  min-width: 130px;
+}
+.color-field input {
+  width: 60px;
+  min-height: 38px;
+  padding: 3px;
+}
+.label-panel .panel-heading p {
+  margin: 5px 0 0;
+}
+.label-list {
+  display: grid;
+}
+.label-list > div {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.label-list > div > span:nth-child(2) {
+  display: grid;
+}
+.label-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+}
+.label-empty {
+  margin: 30px auto;
+}
+@media (max-width: 850px) {
+  .settings-sections,
+  .label-create-panel {
+    grid-template-columns: 1fr;
+  }
+}

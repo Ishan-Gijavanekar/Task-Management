@@ -301,10 +301,9 @@
 .task-list-row {
   min-width: 740px;
   display: grid;
-  grid-template-columns: minmax(240px, 2.5fr) minmax(120px, 1fr) minmax(
-      100px,
-      0.8fr
-    ) minmax(110px, 0.9fr) minmax(140px, 1fr);
+  grid-template-columns:
+    minmax(240px, 2.5fr) minmax(120px, 1fr) minmax(100px, 0.8fr)
+    minmax(110px, 0.9fr) minmax(140px, 1fr);
   align-items: center;
   gap: 16px;
   padding: 0 20px;

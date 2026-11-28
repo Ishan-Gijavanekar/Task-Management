@@ -1,15 +1,25 @@
+# Environment
 .env
+.env.*
+!.env.example
 
-# Build
+# Build output
 bin/
-build/
 dist/
+*.exe
+*.test
 
-# IDE
-.vscode/
+# Coverage
+coverage/
+coverage.out
 
 # Logs
 *.log
 
-# Test artifacts
-coverage.out
+# IDE
+.idea/
+.vscode/
+
+# Operating system
+.DS_Store
+Thumbs.db

@@ -10,6 +10,21 @@ services:
       retries: 20
     volumes:
       - mongo_data:/data/db
+    
+  nats:
+      image: nats:2.11-alpine
+      command:
+        - "-js"
+        - "-sd"
+        - "/data"
+        - "-m"
+        - "8222"
+      ports:
+        - "127.0.0.1:4222:4222"
+        - "127.0.0.1:8222:8222"
+      volumes:
+        - nats_data:/data
+      restart: unless-stopped
 
   user-service:
     build: ./user-service
@@ -67,3 +82,4 @@ services:
 
 volumes:
   mongo_data:
+  nats_data:
